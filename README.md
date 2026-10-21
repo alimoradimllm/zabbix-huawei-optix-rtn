@@ -16,25 +16,37 @@ export version is equal to or lower than its own, so a 6.x server rejects it.
 
 ## The fix
 
-| Change | Why |
+Zabbix only imports export files whose `version` is **equal to or lower than the server's**.
+Editing the version tag is not enough for 6.0, because the template relies on features that 6.0 lacks:
+
+| 7.4 / 6.4 feature used | In 6.0 |
 |---|---|
-| `zabbix_export.version: '7.4'` → `'6.4'` | Export format version Zabbix 6.4 accepts |
-| Linked template `Template Module ICMP Ping` → `ICMP Ping` | Name used by the built-in template in 6.4 |
+| `walk[...]` SNMP master items | not available (added in 6.4) |
+| `SNMP_WALK_TO_JSON` / `SNMP_WALK_VALUE` preprocessing | not available (6.4) |
+| Dependent low-level discovery | different |
+| `template_groups` export section | called `groups` in 6.0 (renamed in 6.2) |
 
-Nothing else needed changing: the file uses only features available in 6.4 (`walk[]` SNMP OIDs,
-dependent items, `SNMP_WALK_TO_JSON` / `SNMP_WALK_VALUE` preprocessing, dependent LLD, value maps).
+So the 6.0 file is **re-implemented**: every discovery rule is a classic SNMP discovery
+`discovery[{#MACRO},OID,...]`, and every item prototype is a plain SNMP agent item using
+`<OID>.{#SNMPINDEX}`. Same OIDs, keys, units, value maps, tags, filters, and macros as the original.
+The cost: each item is polled with its own SNMP request instead of one bulk walk (default 5m interval), so it is a little heavier on the device.
 
-### Which Zabbix version do I need?
+| File | Zabbix version |
+|---|---|
+| `Huawei_Optix_RTN_zabbix6.0.yaml` | **6.0 LTS** (generated) |
+| `Huawei_Optix_RTN_zabbix6.4.yaml` | 6.4+ (header + linked-template name edit only) |
+| `Huawei_Optix_RTN_original_zabbix7.4.yaml` | 7.4 (original export) |
 
-- **6.4 and newer (6.4, 7.0, 7.2...)**: use `Huawei_Optix_RTN_zabbix6.4.yaml`.
-- **6.0 LTS: not supported.** SNMP `walk[]` items and the `SNMP_WALK_*` preprocessing steps were
-  introduced in 6.4, so this template cannot work on 6.0 even if the version tag were edited.
-  Upgrade to 6.4+ or rewrite it with classic SNMP discovery (`discovery[]`).
-- **7.4**: use `Huawei_Optix_RTN_original_zabbix7.4.yaml`.
+The 6.0 file is produced from the original by `tools/convert_to_zabbix6.0.py`:
+
+```bash
+python tools/convert_to_zabbix6.0.py Huawei_Optix_RTN_original_zabbix7.4.yaml Huawei_Optix_RTN_zabbix6.0.yaml
+```
+(needs `pip install pyyaml`)
 
 ## Import
 
-1. *Data collection → Templates → Import*, choose `Huawei_Optix_RTN_zabbix6.4.yaml`.
+1. *Data collection → Templates → Import*, choose the file matching your version (see table above).
 2. If import complains about a missing template, make sure the built-in **ICMP Ping**
    template exists (or change the linked name in the YAML to match yours).
 3. Create the host with an **SNMP interface** (v2c/v3), link `Huawei Optix RTN`.
@@ -57,10 +69,13 @@ dependent items, `SNMP_WALK_TO_JSON` / `SNMP_WALK_VALUE` preprocessing, dependen
 
 ## Status / caveats
 
-The conversion was made by editing the export header and linked template name. It has **not been
-tested against a live Zabbix 6.4 server**. If your import reports another error, open an issue with the exact message.
+None of these files has been tested against a live Zabbix server (none was available when written). 
+The 6.0 file was checked structurally only.
+Known oddity inherited from the original: the "Bits received/sent" regex is stored as `10 : (\\d+)` (double backslash); if those items stay empty, change it to `10 : (\d+)`. If your import reports another error, open an issue with the exact message.
 
 ## Files
 
-- `Huawei_Optix_RTN_zabbix6.4.yaml` – converted template
+- `Huawei_Optix_RTN_zabbix6.0.yaml` – Zabbix 6.0 LTS template
+- `Huawei_Optix_RTN_zabbix6.4.yaml` – Zabbix 6.4+ template
+- `tools/convert_to_zabbix6.0.py` – converter
 - `Huawei_Optix_RTN_original_zabbix7.4.yaml` – original export

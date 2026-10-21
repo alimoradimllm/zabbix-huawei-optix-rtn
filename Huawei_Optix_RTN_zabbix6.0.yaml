@@ -1,0 +1,548 @@
+zabbix_export:
+  version: '6.0'
+  templates:
+  - uuid: 8ff8adce426e4b208de8aa6650973db6
+    template: Huawei Optix RTN
+    name: Huawei Optix RTN
+    templates:
+    - name: ICMP Ping
+    groups:
+    - name: RRL
+    - name: Templates/Network devices
+    items:
+    - uuid: a6819385b78a4c68bc6915263e568be6
+      name: Uptime
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: system.net.uptime[sysUpTime.0]
+      delay: 30m
+      trends: '0'
+      units: uptime
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: component
+        value: system
+    discovery_rules:
+    - uuid: c474b2ab126d4ed994f2e6375dc3509f
+      name: Network interfaces discovery
+      type: SNMP_AGENT
+      key: net.eth.discovery
+      filter:
+        conditions:
+        - macro: '{#IFOPERSTATUS}'
+          value: '0'
+          operator: NOT_MATCHES_REGEX
+      item_prototypes:
+      - uuid: 005ab43f08c743b49642cf2f9f783fc4
+        name: 'Ethernet interface {#SNMPINDEX} ({#IFNAME}): Bits received'
+        type: SNMP_AGENT
+        key: net.if.rxbytes[{#SNMPINDEX}]
+        units: bps
+        valuemap:
+          name: IFSPEED
+        preprocessing:
+        - type: REGEX
+          parameters:
+          - '10 : (\d+)'
+          - \1
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        tags:
+        - tag: component
+          value: network
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.14.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 0f3adb325a8847fd9477813275ef7e26
+        name: 'Ethernet interface {#SNMPINDEX} ({#IFNAME}): Speed'
+        type: SNMP_AGENT
+        key: net.if.speed[{#SNMPINDEX}]
+        valuemap:
+          name: IFSPEED
+        tags:
+        - tag: component
+          value: network
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.6.{#SNMPINDEX}
+        delay: 5m
+      - uuid: b65cb9865bfc4604b0880fe32b56359e
+        name: 'Ethernet interface {#SNMPINDEX} ({#IFNAME}): State'
+        type: SNMP_AGENT
+        key: net.if.state[{#SNMPINDEX}]
+        valuemap:
+          name: IFSTATE
+        tags:
+        - tag: component
+          value: network
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.5.{#SNMPINDEX}
+        delay: 5m
+      - uuid: eb28a0a045084cf1a6f48118f7a38454
+        name: 'Ethernet interface {#SNMPINDEX} ({#IFNAME}): Bits sent'
+        type: SNMP_AGENT
+        key: net.if.txbytes[{#SNMPINDEX}]
+        units: bps
+        valuemap:
+          name: IFSPEED
+        preprocessing:
+        - type: REGEX
+          parameters:
+          - '10 : (\d+)'
+          - \1
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        tags:
+        - tag: component
+          value: network
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.15.{#SNMPINDEX}
+        delay: 5m
+      snmp_oid: discovery[{#IFOPERSTATUS},1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.5,{#IFSPEEDSTATUS},1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.6,{#IFNAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2]
+      delay: 1h
+    - uuid: 3a414e7483524400b75481a0a8eebcb2
+      name: Radio IF interfaces discovery
+      type: SNMP_AGENT
+      key: net.if.discovery
+      filter:
+        conditions:
+        - macro: '{#LINKID}'
+          value: '65535'
+          operator: NOT_MATCHES_REGEX
+      item_prototypes:
+      - uuid: fd5b44d55d3842249e2bb2c4262b63c8
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation AM Status'
+        type: SNMP_AGENT
+        key: net.if.amstate[{#SNMPINDEX}]
+        valuemap:
+          name: IFSTATE
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.40.1.2.{#SNMPINDEX}
+        delay: 5m
+      - uuid: b0f2fcba8042480da7934b068b31eeaa
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation Current Rx'
+        type: SNMP_AGENT
+        key: net.if.curRxModulation[{#SNMPINDEX}]
+        valuemap:
+          name: Modulation
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        - tag: radio
+          value: rx
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.2.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 16cdb397ae4c4536a08c54023564c0a9
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation Current Tx'
+        type: SNMP_AGENT
+        key: net.if.curTxModulation[{#SNMPINDEX}]
+        valuemap:
+          name: Modulation
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        - tag: radio
+          value: tx
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.1.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 779d4c4d256f447b8414ba9eb53b1298
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation Lowest'
+        type: SNMP_AGENT
+        key: net.if.lowModulation[{#SNMPINDEX}]
+        valuemap:
+          name: Modulation
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.40.1.3.{#SNMPINDEX}
+        delay: 5m
+      - uuid: e64224e8a95d4ac49cf35e28dfa4f3df
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation manual mode'
+        type: SNMP_AGENT
+        key: net.if.manualModulation[{#SNMPINDEX}]
+        value_type: FLOAT
+        valuemap:
+          name: Modulation
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.40.1.5.{#SNMPINDEX}
+        delay: 5m
+      - uuid: fbe90f2e763a42a8ade4ce07d248fa6a
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Rate current rx'
+        type: SNMP_AGENT
+        key: net.if.ratecurrx[{#SNMPINDEX}]
+        units: bit/s
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.6.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 4fd7ed21a04e465ebc6983f99d0949b9
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Rate current tx'
+        type: SNMP_AGENT
+        key: net.if.ratecurtx[{#SNMPINDEX}]
+        units: bit/s
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.5.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 4e044a4579a74181a6131952e738e72b
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Rate max'
+        type: SNMP_AGENT
+        key: net.if.ratemax[{#SNMPINDEX}]
+        units: bit/s
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.4.{#SNMPINDEX}
+        delay: 5m
+      - uuid: ef35fa83cb34480882e1df00048d5e04
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Rate min'
+        type: SNMP_AGENT
+        key: net.if.ratemin[{#SNMPINDEX}]
+        units: bit/s
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.3.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 8142beef617f4dd58c2fb1d62908d8e4
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation Top'
+        type: SNMP_AGENT
+        key: net.if.topModulation[{#SNMPINDEX}]
+        valuemap:
+          name: Modulation
+        tags:
+        - tag: component
+          value: IF
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.3.10.40.1.4.{#SNMPINDEX}
+        delay: 5m
+      snmp_oid: discovery[{#AMENABLE},1.3.6.1.4.1.2011.2.25.4.40.3.10.40.1.2,{#IFNAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#LINKID},1.3.6.1.4.1.2011.2.25.4.40.3.10.20.1.2]
+      delay: 1h
+    - uuid: 897a168f658a4345b7ac0fa3b4aff651
+      name: Radio IF network discovery
+      type: SNMP_AGENT
+      key: net.if.net.discovery
+      filter:
+        conditions:
+        - macro: '{#LINKID}'
+          value: '65535'
+          operator: NOT_MATCHES_REGEX
+        - macro: '{#SPEED}'
+          value: '4294967295'
+          operator: NOT_MATCHES_REGEX
+      item_prototypes:
+      - uuid: db2316b22c9045f5a47543e21462d9e4
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Bits received'
+        type: SNMP_AGENT
+        key: net.rf.rxbytes[{#SNMPINDEX}]
+        units: bps
+        preprocessing:
+        - type: REGEX
+          parameters:
+          - '10 : (\d+)'
+          - \1
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        tags:
+        - tag: component
+          value: network
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.14.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 99d9238dc63a413b819c7b13892bf55a
+        name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Bits sent'
+        type: SNMP_AGENT
+        key: net.rf.txbytes[{#SNMPINDEX}]
+        units: bps
+        preprocessing:
+        - type: REGEX
+          parameters:
+          - '10 : (\d+)'
+          - \1
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        tags:
+        - tag: component
+          value: network
+        - tag: description
+          value: '{#IFNAME}'
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.15.{#SNMPINDEX}
+        delay: 5m
+      snmp_oid: discovery[{#IFNAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#LINKID},1.3.6.1.4.1.2011.2.25.4.40.3.10.20.1.2,{#SPEED},1.3.6.1.4.1.2011.2.25.4.50.52.1.1.1.14]
+      delay: 1h
+    - uuid: 4f4fe38dd2dd4486b38a80465ff1f788
+      name: Radio ODU interfaces discovery
+      type: SNMP_AGENT
+      key: net.rf.discovery
+      filter:
+        conditions:
+        - macro: '{#IFENABLE}'
+          value: '0'
+          operator: NOT_MATCHES_REGEX
+      item_prototypes:
+      - uuid: 418ef5e04709473c8a360c23f078d71b
+        name: 'ODU interface {#SNMPINDEX}: ConfigState'
+        type: SNMP_AGENT
+        key: net.rf.configstate[{#SNMPINDEX}]
+        valuemap:
+          name: IFSTATE
+        tags:
+        - tag: component
+          value: ODU
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.4.10.40.1.1.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 6819cb6e886c42c5877a402cc91a5c10
+        name: 'ODU interface {#SNMPINDEX}: FreqRX'
+        type: SNMP_AGENT
+        key: net.rf.rxfreq[{#SNMPINDEX}]
+        units: Hz
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        tags:
+        - tag: component
+          value: ODU
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        - tag: radio
+          value: rx
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.4.10.20.1.4.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 80868424f2bd44d9a4738cd1124720ad
+        name: 'ODU interface {#SNMPINDEX}: RxPower'
+        type: SNMP_AGENT
+        key: net.rf.rxpower[{#SNMPINDEX}]
+        value_type: FLOAT
+        units: dBm
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.1'
+        tags:
+        - tag: component
+          value: ODU
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        - tag: radio
+          value: rx
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.4.10.30.1.9.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 2766768beceb4d51abd98349b882765b
+        name: 'ODU interface {#SNMPINDEX}: State'
+        type: SNMP_AGENT
+        key: net.rf.state[{#SNMPINDEX}]
+        valuemap:
+          name: IFSTATE
+        tags:
+        - tag: component
+          value: ODU
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.4.10.40.1.2.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 2d32967568974b1fa0f6e944524d66f5
+        name: 'ODU interface {#SNMPINDEX}: FreqTX'
+        type: SNMP_AGENT
+        key: net.rf.txfreq[{#SNMPINDEX}]
+        units: Hz
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        tags:
+        - tag: component
+          value: ODU
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        - tag: radio
+          value: tx
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.4.10.20.1.3.{#SNMPINDEX}
+        delay: 5m
+      - uuid: 473d5fceb494447d95ed9621d1d196d8
+        name: 'ODU interface {#SNMPINDEX}: TxPower'
+        type: SNMP_AGENT
+        key: net.rf.txpower[{#SNMPINDEX}]
+        value_type: FLOAT
+        units: dBm
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.1'
+        tags:
+        - tag: component
+          value: ODU
+        - tag: interface
+          value: '{#SNMPINDEX}'
+        - tag: radio
+          value: tx
+        snmp_oid: 1.3.6.1.4.1.2011.2.25.4.40.4.10.30.1.8.{#SNMPINDEX}
+        delay: 5m
+      snmp_oid: discovery[{#IFENABLE},1.3.6.1.4.1.2011.2.25.4.40.4.10.40.1.1]
+      delay: 1h
+    macros:
+    - macro: '{$ICMP_RESPONSE_TIME_WARN}'
+      value: '0.5'
+    - macro: '{$RSL_CRIT}'
+      value: '-70'
+    - macro: '{$RSL_WARN}'
+      value: '-60'
+    valuemaps:
+    - uuid: e2db255707c6434c9ad3755085937b09
+      name: IFSPEED
+      mappings:
+      - value: '0'
+        newvalue: auto
+      - value: '1'
+        newvalue: 10Mhalf
+      - value: '2'
+        newvalue: 10Mfull
+      - value: '3'
+        newvalue: 100Mhalf
+      - value: '4'
+        newvalue: 100Mfull
+      - value: '5'
+        newvalue: 1Ghalf
+      - value: '6'
+        newvalue: 1Gfull
+      - value: '255'
+        newvalue: negotiating
+    - uuid: dd0d6f27f99e473d859a5864d7970cf1
+      name: IFSTATE
+      mappings:
+      - value: '0'
+        newvalue: Down
+      - value: '1'
+        newvalue: Up
+    - uuid: f06bd663081642e8987e2f7f9cf43c1c
+      name: Modulation
+      mappings:
+      - value: '1'
+        newvalue: QPSK
+      - value: '2'
+        newvalue: 16QAM
+      - value: '3'
+        newvalue: 32QAM
+      - value: '4'
+        newvalue: 64QAM
+      - value: '5'
+        newvalue: 128QAM
+      - value: '6'
+        newvalue: 256QAM
+      - value: '7'
+        newvalue: 512QAM
+      - value: '8'
+        newvalue: 1024QAM
+      - value: '9'
+        newvalue: QPSKSTRONG
+      - value: '10'
+        newvalue: 16QAMSTRONG
+      - value: '11'
+        newvalue: 512QAMLIGHT
+      - value: '12'
+        newvalue: 1024QAMLIGHT
+      - value: '13'
+        newvalue: 2048QAM
+      - value: '14'
+        newvalue: QPSKStrong250M
+      - value: '15'
+        newvalue: QPSKStrong500M
+      - value: '16'
+        newvalue: QPSKStrong750M
+      - value: '17'
+        newvalue: QPSKStrong62P5M
+      - value: '18'
+        newvalue: QPSKStrong125M
+      - value: '-1'
+        newvalue: None
+  groups:
+  - uuid: 7d4b195e632a4c9b8da62a84f58895c0
+    name: RRL
+  - uuid: 36bff6c29af64692839d077febfc7079
+    name: Templates/Network devices
