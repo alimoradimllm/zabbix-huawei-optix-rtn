@@ -35,6 +35,7 @@ zabbix_export:
         - macro: '{#IFOPERSTATUS}'
           value: '0'
           operator: NOT_MATCHES_REGEX
+          formulaid: A
       item_prototypes:
       - uuid: 005ab43f08c743b49642cf2f9f783fc4
         name: 'Ethernet interface {#SNMPINDEX} ({#IFNAME}): Bits received'
@@ -125,6 +126,7 @@ zabbix_export:
         - macro: '{#LINKID}'
           value: '65535'
           operator: NOT_MATCHES_REGEX
+          formulaid: A
       item_prototypes:
       - uuid: fd5b44d55d3842249e2bb2c4262b63c8
         name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Modulation AM Status'
@@ -304,9 +306,11 @@ zabbix_export:
         - macro: '{#LINKID}'
           value: '65535'
           operator: NOT_MATCHES_REGEX
+          formulaid: A
         - macro: '{#SPEED}'
           value: '4294967295'
           operator: NOT_MATCHES_REGEX
+          formulaid: B
       item_prototypes:
       - uuid: db2316b22c9045f5a47543e21462d9e4
         name: 'IF interface {#SNMPINDEX} ({#IFNAME}): Bits received'
@@ -363,6 +367,7 @@ zabbix_export:
         - macro: '{#IFENABLE}'
           value: '0'
           operator: NOT_MATCHES_REGEX
+          formulaid: A
       item_prototypes:
       - uuid: 418ef5e04709473c8a360c23f078d71b
         name: 'ODU interface {#SNMPINDEX}: ConfigState'

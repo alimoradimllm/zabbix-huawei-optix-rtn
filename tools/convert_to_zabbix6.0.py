@@ -23,6 +23,9 @@ for r in t['discovery_rules']:
     r['snmp_oid'] = 'discovery[' + ','.join(args) + ']'
     r['delay'] = '1h'
     r.pop('master_item', None); r.pop('preprocessing', None)
+    # 6.0 requires a formulaid (A, B, ...) on every filter condition
+    for n, c in enumerate(r.get('filter', {}).get('conditions', [])):
+        c['formulaid'] = chr(ord('A') + n)
     for p in r['item_prototypes']:
         steps = p['preprocessing']
         first = steps[0]

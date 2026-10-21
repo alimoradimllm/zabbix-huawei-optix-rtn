@@ -25,6 +25,7 @@ Editing the version tag is not enough for 6.0, because the template relies on fe
 | `SNMP_WALK_TO_JSON` / `SNMP_WALK_VALUE` preprocessing | not available (6.4) |
 | Dependent low-level discovery | different |
 | `template_groups` export section | called `groups` in 6.0 (renamed in 6.2) |
+| Filter conditions without `formulaid` | 6.0 requires `formulaid` (A, B, ...) on each condition |
 
 So the 6.0 file is **re-implemented**: every discovery rule is a classic SNMP discovery
 `discovery[{#MACRO},OID,...]`, and every item prototype is a plain SNMP agent item using
@@ -71,7 +72,6 @@ python tools/convert_to_zabbix6.0.py Huawei_Optix_RTN_original_zabbix7.4.yaml Hu
 
 None of these files has been tested against a live Zabbix server (none was available when written). 
 The 6.0 file was checked structurally only.
-Known oddity inherited from the original: the "Bits received/sent" regex is stored as `10 : (\\d+)` (double backslash); if those items stay empty, change it to `10 : (\d+)`. If your import reports another error, open an issue with the exact message.
 
 ## Files
 
