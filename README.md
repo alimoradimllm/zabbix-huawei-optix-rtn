@@ -17,6 +17,6 @@ Full documentation: **[zabbix-6.0/README.md](zabbix-6.0/README.md)**.
 
 ## Status
 
-These files have not been imported into a live Zabbix server by the repo author. They were checked for structure
-(valid YAML, 102 unique UUIDs, 6.0 export layout, `formulaid` on filter conditions).
+`zabbix-6.0/Huawei_OptiX_RTN_by_SNMP.yaml` was imported and tested on **Zabbix 6.0 LTS** and works.
+The files in `legacy/` were only checked for structure, not tested on a live server.
 If an import fails, open an issue with the exact Zabbix error message.

@@ -122,9 +122,9 @@ This file is `6.0`, which 6.0 and newer accept. A 7.x export will not import int
 
 **Items "Not supported"** – check community/view access, and try disabling "Use combined requests" on the host's SNMP interface if the radio has a small SNMP PDU size.
 
-## Validation performed
+## Validation
 
 - Valid YAML, `zabbix_export.version: '6.0'`, 1 template, 11 items, 14 discovery rules, 6 value maps.
 - 102 UUIDs, all unique and 32 hex characters.
 - Filter conditions carry `formulaid` (a 6.0 requirement).
-- **Not imported into a live server by the repo author.**
+- **Tested by the repo owner on a live Zabbix 6.0 LTS server: imports and works.**
