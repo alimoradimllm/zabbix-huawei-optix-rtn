@@ -7,7 +7,6 @@ zabbix_export:
     templates:
     - name: ICMP Ping
     groups:
-    - name: RRL
     - name: Templates/Network devices
     items:
     - uuid: a6819385b78a4c68bc6915263e568be6
@@ -547,7 +546,5 @@ zabbix_export:
       - value: '-1'
         newvalue: None
   groups:
-  - uuid: 7d4b195e632a4c9b8da62a84f58895c0
-    name: RRL
   - uuid: 36bff6c29af64692839d077febfc7079
     name: Templates/Network devices
