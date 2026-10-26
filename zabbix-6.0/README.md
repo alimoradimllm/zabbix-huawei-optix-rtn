@@ -15,6 +15,18 @@ built from SNMP walks of 419 NEs. Everything uses plain SNMP agent items and cla
 - SNMP enabled on the radio, with read access to the Huawei tree (`1.3.6.1.4.1.2011`) and `1.3.6.1.2.1.1`.
 - A host with an SNMP interface.
 
+## Changelog
+
+**v2**
+- New discovery rule *Radio link neighbour discovery*: far-end NE name per radio link, with a trigger when it changes.
+- New *Calloff deviation* item and trigger per ODU (degradation since commissioning).
+- Alarm triggers have flap protection (`{$RTN.ALARM.MIN.SAMPLES}` / `{$RTN.ALARM.MIN.ACTIVE}`).
+- Ethernet utilization triggers replaced by Warning (`.WARN`) and Average (`.HIGH`) levels, evaluated over `{$RTN.ETH.UTIL.PERIOD}`, tunable per port.
+- Low-RSL trigger context is now the ODU slot.
+- New defaults: `{$RTN.ETH.UTIL.WARN}` 90 → 70, `{$RTN.INTERVAL.ALARM}` 2m → 5m, more ignored alarm IDs.
+
+**v1** – initial release.
+
 ## Install
 
 1. *Data collection → Templates → Import* → select the YAML.
@@ -37,21 +49,22 @@ built from SNMP walks of 419 NEs. Everything uses plain SNMP agent items and cla
 | Uptime | `rtn.ne.uptime` | `1.3.6.1.2.1.1.3.0` | status |
 | SNMP availability | `zabbix[host,snmp,available]` | internal | – |
 
-### Low-level discovery rules (14)
+### Low-level discovery rules (15)
 
 All run every `{$RTN.LLD.INTERVAL}` (1 h). Each uses `discovery[{#MACRO},OID]`; the prototypes read `<OID>.{#SNMPINDEX}`.
 
 | Rule | Prototypes | Trigger / graph |
 |---|---|---|
-| Active alarm discovery | Alarm severity (ignores alarm IDs in `{$RTN.ALARM.EID.IGNORE}` and severities other than 1–3) | – |
+| Active alarm discovery | Alarm severity (ignores alarm IDs in `{$RTN.ALARM.EID.IGNORE}` and severities other than 1–3) | critical / major / minor problems with flap protection |
 | Board discovery | Board state | – |
 | Board temperature discovery | Temperature, high threshold | 2 triggers |
 | Ethernet port discovery | RX/TX bits, RX/TX instant rate | Traffic graph |
 | Ethernet RX drop / TX drop / FCS discovery | Dropped packets (pps), FCS errors | – |
-| Ethernet port utilization discovery | RX / TX utilization % | – |
+| Ethernet port utilization discovery | RX / TX utilization % | Warning and Average triggers per direction |
 | Radio IF discovery | RX/TX modulation, RX/TX/guaranteed/full capacity | 1 trigger, Capacity graph |
+| Radio link neighbour discovery | Far-end NE name (from the neighbour the radio learns over the link) | Trigger when the far-end NE changes |
 | Radio IF performance discovery | SNR avg/min/max, MSE avg/best/worst, BER (15-min PM) | MSE and SNR graphs |
-| ODU discovery | RX/TX power, configured TX power, RX/TX frequency, T/R spacing | RX and TX power graph |
+| ODU discovery | RX/TX power, configured TX power, RX/TX frequency, T/R spacing, **calloff deviation** | RX and TX power graph, calloff trigger |
 | ODU performance discovery | RSL and TSL min/avg/max (15-min PM) | 1 trigger, RSL graph |
 | ODU frequency band discovery | Frequency band (GHz) | – |
 | ODU transmitter state discovery | TX state | – |
@@ -72,7 +85,32 @@ unsupported table leaves one rule empty instead of breaking the rest.
 | High | Board temperature above the board's high threshold | min 5 m ≥ threshold |
 | Warning | Board temperature near the threshold | min 5 m ≥ threshold − `{$RTN.TEMP.MARGIN}` |
 | Warning | Radio IF below full capacity (modulation downshift) | RX capacity < full capacity for 10 m |
+| Warning | ODU low received signal level | max RX power 5 m < `{$RTN.ODU.RX.WARN}` (context = ODU slot) |
 | Warning | ODU fading | RSL avg − RSL min > `{$RTN.RSL.FADE}` dB in the 15-min period |
+
+| High / Average / Warning | Active alarm (critical / major / minor) | Alarm severity 1 / 2 / 3 present, and seen in at least `{$RTN.ALARM.MIN.SAMPLES}` polls within `{$RTN.ALARM.MIN.ACTIVE}` (flap protection) |
+| Warning | Port RX / TX utilization above `{$RTN.ETH.UTIL.WARN}`% | min over `{$RTN.ETH.UTIL.PERIOD}` |
+| Average | Port RX / TX utilization above `{$RTN.ETH.UTIL.HIGH}`% | min over `{$RTN.ETH.UTIL.PERIOD}` |
+| Warning | Far-end NE changed | the neighbour name on a radio link changed (possible re-cabling or wrong link) |
+| High | Calloff deviation above `{$RTN.CALLOFF.MAX}` dB for `{$RTN.CALLOFF.PERIOD}` | link has degraded since commissioning |
+
+### Calloff deviation (link degradation since commissioning)
+
+Item `{#ODU.NAME}: Calloff deviation` = (TX actual − TX configured) − (RX actual − calloff RX).
+With TX at its configured power, this is how many dB the received level has dropped since commissioning.
+
+Set the commissioning RX level **per ODU on the host** with the ODU number as context:
+
+```
+{$CALLOFF.RX:27} = -38      # ODU 27 was commissioned at -38 dBm
+```
+
+With no value (default `0`) the item stays 0 and the trigger never fires.
+
+### Per-port and per-link tuning
+
+Thresholds accept contexts, so one host can have different limits per port or ODU, e.g.
+`{$RTN.ETH.UTIL.HIGH:17/5}` for port 17/5, `{$RTN.ODU.RX.WARN:"ODU 21 (IF 1/1)"}` for one ODU.
 
 ### Value maps
 
@@ -87,17 +125,24 @@ Huawei RTN alarm severity, board state, device type, modulation, NE state, ODU t
 | `{$RTN.INTERVAL.RADIO}` | `1m` | Radio (ODU/IF) values |
 | `{$RTN.INTERVAL.TRAFFIC}` | `1m` | Ethernet/radio traffic |
 | `{$RTN.INTERVAL.PM}` | `5m` | 15-minute performance counters |
-| `{$RTN.INTERVAL.ALARM}` | `2m` | Active alarm polling |
+| `{$RTN.INTERVAL.ALARM}` | `5m` | Active alarm polling |
 | `{$RTN.LLD.INTERVAL}` | `1h` | All discovery rules |
 | `{$RTN.ICMP.LOSS.WARN}` | `20` | ICMP loss % warning |
 | `{$RTN.ICMP.RESPONSE.WARN}` | `0.3` | ICMP response time warning (s) |
-| `{$RTN.ETH.UTIL.WARN}` | `90` | Ethernet utilization warning (%) |
+| `{$RTN.ETH.UTIL.WARN}` | `70` | Ethernet utilization Warning (%) |
+| `{$RTN.ETH.UTIL.HIGH}` | `80` | Ethernet utilization Average problem (%) |
+| `{$RTN.ETH.UTIL.PERIOD}` | `5m` | How long utilization must stay above the level |
+| `{$CALLOFF.RX}` | `0` | Commissioning RX power (dBm), set per ODU with context; 0 = off |
+| `{$RTN.CALLOFF.MAX}` | `7` | Calloff deviation (dB) that raises a High problem |
+| `{$RTN.CALLOFF.PERIOD}` | `12h` | How long the deviation must stay above the maximum |
+| `{$RTN.ALARM.MIN.SAMPLES}` | `4` | Polls an alarm must be seen in before a problem opens |
+| `{$RTN.ALARM.MIN.ACTIVE}` | `5m` | Window for those polls (flap protection) |
 | `{$RTN.ODU.RX.WARN}` | `-65` | ODU RX level warning (dBm) |
 | `{$RTN.ODU.RX.DROP}` | `10` | ODU RX drop threshold (dB) |
 | `{$RTN.ODU.RX.NOSIGNAL}` | `-85` | ODU no-signal level (dBm) |
 | `{$RTN.RSL.FADE}` | `10` | Fading depth (dB) |
 | `{$RTN.TEMP.MARGIN}` | `10` | °C below the high threshold for the warning |
-| `{$RTN.ALARM.EID.IGNORE}` | `^(13047)$` | Regex of alarm IDs to ignore |
+| `{$RTN.ALARM.EID.IGNORE}` | `^(13047\|412\|13144\|12860\|333)$` | Regex of alarm IDs that never raise problems (password-change, power-abnormal, licence and clock free-run alarms). Remove `412` to alarm on loss of a power input. |
 | `{$RTN.ALARM.NODATA}` | `5m` | No-data window for alarms |
 | `{$SNMP.TIMEOUT}` | `5m` | Window for "No SNMP data collection" |
 
@@ -124,7 +169,7 @@ This file is `6.0`, which 6.0 and newer accept. A 7.x export will not import int
 
 ## Validation
 
-- Valid YAML, `zabbix_export.version: '6.0'`, 1 template, 11 items, 14 discovery rules, 6 value maps.
-- 102 UUIDs, all unique and 32 hex characters.
+- Valid YAML, `zabbix_export.version: '6.0'`, 1 template, 11 items, 15 discovery rules, 6 value maps.
+- 111 UUIDs, all unique and 32 hex characters.
 - Filter conditions carry `formulaid` (a 6.0 requirement).
 - **Tested by the repo owner on a live Zabbix 6.0 LTS server: imports and works.**
