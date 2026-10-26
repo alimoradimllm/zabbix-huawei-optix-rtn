@@ -1,0 +1,2587 @@
+zabbix_export:
+  version: '7.0'
+  date: '2026-01-01T00:00:00Z'
+  template_groups:
+    - uuid: 04be74725f864716bc83a7df7f862e84
+      name: 'Templates/Network devices'
+  templates:
+    - uuid: ea7bb56ac0194aa3bedca5bf82e0e6ff
+      template: 'Huawei OptiX RTN by SNMP'
+      name: 'Huawei OptiX RTN by SNMP'
+      description: |
+        Huawei OptiX RTN microwave radios (RTN 905, 910A, 950A, 980, 380H) by SNMP.
+        Common items for all models: NE info, boards and temperatures, ODU power and frequencies, IF modulation and capacity, 15-minute radio performance (RSL/TSL, SNR, MSE), Ethernet/radio port traffic and active alarms.
+        Link the model template (e.g. 'Huawei OptiX RTN 950A by SNMP') instead of this one to get model-specific items too.
+        Built from SNMP walks of 419 NEs; OIDs from the Huawei OPTIX MIBs.
+      groups:
+        - name: 'Templates/Network devices'
+      items:
+        - uuid: dd5187e99ee94ccdbdc99f04999ee17e
+          name: 'ICMP ping'
+          type: SIMPLE
+          key: icmpping
+          tags:
+            - tag: component
+              value: health
+          triggers:
+            - uuid: 593ab82f5aa1424e86851eee9a91cbd6
+              expression: 'max(/Huawei OptiX RTN by SNMP/icmpping,#3)=0'
+              name: 'Unavailable by ICMP ping'
+              priority: HIGH
+              description: 'Last three ICMP checks failed.'
+        - uuid: e744b8e23b044a7da002449cdbeb4fa6
+          name: 'ICMP loss'
+          type: SIMPLE
+          key: icmppingloss
+          value_type: FLOAT
+          units: '%'
+          tags:
+            - tag: component
+              value: health
+          triggers:
+            - uuid: 093d3853afb840b09a7c12aee6843035
+              expression: 'min(/Huawei OptiX RTN by SNMP/icmppingloss,5m)>{$RTN.ICMP.LOSS.WARN} and min(/Huawei OptiX RTN by SNMP/icmppingloss,5m)<100'
+              name: 'High ICMP ping loss'
+              priority: WARNING
+              dependencies:
+                - name: 'Unavailable by ICMP ping'
+                  expression: 'max(/Huawei OptiX RTN by SNMP/icmpping,#3)=0'
+        - uuid: c4157976c2294adcbd26ba58a7dc1520
+          name: 'ICMP response time'
+          type: SIMPLE
+          key: icmppingsec
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: health
+          triggers:
+            - uuid: 7db0b33c537f47af86b9ef7784ad60f7
+              expression: 'avg(/Huawei OptiX RTN by SNMP/icmppingsec,5m)>{$RTN.ICMP.RESPONSE.WARN}'
+              name: 'High ICMP ping response time'
+              priority: WARNING
+              dependencies:
+                - name: 'High ICMP ping loss'
+                  expression: 'min(/Huawei OptiX RTN by SNMP/icmppingloss,5m)>{$RTN.ICMP.LOSS.WARN} and min(/Huawei OptiX RTN by SNMP/icmppingloss,5m)<100'
+                - name: 'Unavailable by ICMP ping'
+                  expression: 'max(/Huawei OptiX RTN by SNMP/icmpping,#3)=0'
+        - uuid: 95b43203c32142208bce186b99ca0199
+          name: 'NE ID'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.2011.2.25.3.40.2.1.1.0
+          key: rtn.ne.id
+          delay: '{$RTN.INTERVAL.INVENTORY}'
+          description: 'NE ID (optixNeID). Extended ID = value / 65536, basic ID = value % 65536.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 573aafe3db5840788149d6bef42c022e
+          name: 'NE IP address'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.2011.2.25.3.40.2.2.1.0
+          key: rtn.ne.ip
+          delay: '{$RTN.INTERVAL.INVENTORY}'
+          trends: '0'
+          value_type: CHAR
+          description: 'NE IP address (optixNeIP).'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 5cbfb9cb2de341eca4624d0e1d564a9e
+          name: 'Device model'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.2011.2.25.4.30.21.1.8.0
+          key: rtn.ne.model
+          delay: '{$RTN.INTERVAL.INVENTORY}'
+          description: 'Device type (optixNeDeviceType).'
+          valuemap:
+            name: 'Huawei RTN device type'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 59511c1f45844c0680873125b2cc1323
+          name: 'NE name'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.2011.2.25.4.30.21.1.1.0
+          key: rtn.ne.name
+          delay: '{$RTN.INTERVAL.INVENTORY}'
+          trends: '0'
+          value_type: CHAR
+          description: 'NE name configured on the device (optixNeName). sysName is always "Optix product" on these radios.'
+          inventory_link: NAME
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: dbe75db1e83741bebc2143ac7ce8993e
+          name: 'Software version'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: rtn.ne.software
+          delay: '{$RTN.INTERVAL.INVENTORY}'
+          trends: '0'
+          value_type: CHAR
+          description: 'sysDescr. Many NEs leave it empty; where set it holds the software version (e.g. V100R019C10SPC300).'
+          inventory_link: OS
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: cb2ca283e9b2479b8a5439bb3103919c
+          name: 'NE state'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.2011.2.25.4.30.21.1.7.0
+          key: rtn.ne.state
+          delay: '{$RTN.INTERVAL.STATUS}'
+          description: 'NE status (optixNeState): installing or running.'
+          valuemap:
+            name: 'Huawei RTN NE state'
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: a61a2b6b0a034cefae49ce19b9aa5a89
+              expression: 'last(/Huawei OptiX RTN by SNMP/rtn.ne.state)=0'
+              name: 'NE is not in running state'
+              priority: AVERAGE
+              description: 'The NE reports the install state (optixNeState=0), e.g. during a software load.'
+        - uuid: ec11076249004e689a8eaf54ac05d6f7
+          name: Uptime
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: rtn.ne.uptime
+          delay: '{$RTN.INTERVAL.STATUS}'
+          value_type: FLOAT
+          units: uptime
+          description: 'sysUpTime. Note: the 32-bit counter wraps after 497 days, which looks like a restart.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: 2f1eded1c2e44868a29b534894cbdfe2
+              expression: 'last(/Huawei OptiX RTN by SNMP/rtn.ne.uptime)<10m'
+              name: 'Device has been restarted (uptime < 10m)'
+              priority: WARNING
+              description: 'Uptime is under 10 minutes. A sysUpTime wrap after 497 days also triggers this.'
+              manual_close: 'YES'
+        - uuid: 40a918d8857c4d05ac7c8720778f94b8
+          name: 'SNMP agent availability'
+          type: INTERNAL
+          key: 'zabbix[host,snmp,available]'
+          description: 'Zabbix internal check: 0 = SNMP not available, 1 = available.'
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: ac7fa2ed0d1942b6a1ac9b9636daf09e
+              expression: 'max(/Huawei OptiX RTN by SNMP/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0'
+              name: 'No SNMP data collection'
+              priority: AVERAGE
+              description: 'The SNMP agent has not answered for {$SNMP.TIMEOUT}.'
+              dependencies:
+                - name: 'Unavailable by ICMP ping'
+                  expression: 'max(/Huawei OptiX RTN by SNMP/icmpping,#3)=0'
+      discovery_rules:
+        - uuid: 1cffee1e3644460a819f9ab02890b8c3
+          name: 'Active alarm discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#ALM.EID},1.3.6.1.4.1.2011.2.25.3.40.30.10.10.1.2,{#ALM.SEV},1.3.6.1.4.1.2011.2.25.3.40.30.10.10.1.3,{#ALM.PARA},1.3.6.1.4.1.2011.2.25.3.40.30.10.10.1.9]'
+          key: rtn.alarm.discovery
+          delay: '{$RTN.INTERVAL.ALARM}'
+          filter:
+            evaltype: AND
+            conditions:
+              - macro: '{#ALM.EID}'
+                value: '{$RTN.ALARM.EID.IGNORE}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: A
+              - macro: '{#ALM.SEV}'
+                value: '^[123]$'
+                formulaid: B
+          lifetime: 1h
+          description: 'One entity per active critical/major/minor alarm (curAlmDataTable). Alarm IDs matching {$RTN.ALARM.EID.IGNORE} are skipped.'
+          item_prototypes:
+            - uuid: 49a122431a0b4951a8ed523ef231a697
+              name: 'Alarm {#ALM.NAME} ({#ALM.LOCATION}): Severity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.40.30.10.10.1.3.{#SNMPINDEX}'
+              key: 'rtn.alarm.severity[{#SNMPINDEX}]'
+              description: 'Severity of an active alarm (curAlmSeverity). Alarm ID {#ALM.EID}.'
+              valuemap:
+                name: 'Huawei RTN alarm severity'
+              tags:
+                - tag: alarm
+                  value: '{#ALM.NAME}'
+                - tag: component
+                  value: alarm
+              trigger_prototypes:
+                - uuid: 6a7c81009022446a9766aadb879ea5ad
+                  expression: 'last(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}])=1 and nodata(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}],{$RTN.ALARM.NODATA})=0 and count(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}],{$RTN.ALARM.MIN.ACTIVE})>={$RTN.ALARM.MIN.SAMPLES}'
+                  name: '{#ALM.NAME} ({#ALM.LOCATION}) [critical]'
+                  priority: HIGH
+                  description: 'Active alarm on the NE (curAlmDataTable). It opens once the alarm has been seen in {$RTN.ALARM.MIN.SAMPLES} polls within {$RTN.ALARM.MIN.ACTIVE} (the alarm item is polled every minute), so short flaps do not raise problems. It clears when the alarm leaves the table.'
+                - uuid: b1222421acd84f55bcbc83b29b75ba11
+                  expression: 'last(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}])=2 and nodata(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}],{$RTN.ALARM.NODATA})=0 and count(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}],{$RTN.ALARM.MIN.ACTIVE})>={$RTN.ALARM.MIN.SAMPLES}'
+                  name: '{#ALM.NAME} ({#ALM.LOCATION}) [major]'
+                  priority: AVERAGE
+                  description: 'Active alarm on the NE (curAlmDataTable). It opens once the alarm has been seen in {$RTN.ALARM.MIN.SAMPLES} polls within {$RTN.ALARM.MIN.ACTIVE} (the alarm item is polled every minute), so short flaps do not raise problems. It clears when the alarm leaves the table.'
+                - uuid: 05db326c21db4ba5b221580192357522
+                  expression: 'last(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}])=3 and nodata(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}],{$RTN.ALARM.NODATA})=0 and count(/Huawei OptiX RTN by SNMP/rtn.alarm.severity[{#SNMPINDEX}],{$RTN.ALARM.MIN.ACTIVE})>={$RTN.ALARM.MIN.SAMPLES}'
+                  name: '{#ALM.NAME} ({#ALM.LOCATION}) [minor]'
+                  priority: WARNING
+                  description: 'Active alarm on the NE (curAlmDataTable). It opens once the alarm has been seen in {$RTN.ALARM.MIN.SAMPLES} polls within {$RTN.ALARM.MIN.ACTIVE} (the alarm item is polled every minute), so short flaps do not raise problems. It clears when the alarm leaves the table.'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  var NAMES = {"1":"almRLos","2":"almTLos","3":"almRLoc","4":"almTLoc","5":"almROof","6":"almNoBdSoft","8":"almRLof","9":"almTF","10":"almRsCrossTr","12":"almB1Exc","14":"almTrLoc","16":"almHpCrossTr","25":"almInPwrAbn","26":"almOutPwrAbn","28":"almTempOver","29":"almTemHa","30":"almTemLa","31":"almInPwrHigh","32":"almInPwrLow","33":"almMsAis","34":"almMsRdi","35":"almB2Exc","36":"almB2Sd","37":"almMsRei","38":"almMsCrossTr","41":"almApsIndi","42":"almApsFail","48":"almLpRfi","49":"almLpCrossTr","51":"almLpSizeErr","56":"almLsrWillDie","57":"almLsrNoFited","58":"almLSRBCMALM","60":"almLsrCoolAlm","63":"almOutPwrHigh","64":"almOutPwrLow","66":"almAuLop","67":"almMsAdCrossTr","70":"almB3Sd","71":"almB3Exc","72":"almAuAis","75":"almHpUneq","76":"almHpTim","77":"almHpSlm","78":"almHpRdi","79":"almHpRei","81":"almHpLom","82":"almTuLop","83":"almTuAis","84":"almHpAdCrossTr","87":"almJ0Mm","88":"almLpRFifo","89":"almLpTFifo","90":"almLpUneq","91":"almLpTim","92":"almLpSlm","93":"almLpRdi","94":"almLpRei","99":"almWRFail","100":"almLTI","101":"almSynBad","107":"almTAlos","111":"almSyncCLos","115":"almFanFail","117":"almE1Los","118":"almUpE1Ais","119":"almBdStatus","121":"almWrgBdType","125":"almPwrFail","130":"almUpT1AIS","139":"almALoc","141":"almRSErr","159":"almRFRst","160":"almTFRst","163":"almRpLoc","166":"almTempAlarm","175":"almB1SD","180":"almK1K2M","181":"almK2M","182":"almBipSD","183":"almBipExc","184":"almExtSyncLos","185":"almDbmsError","189":"almTd","193":"almS1SynChange","197":"almNeStateInstall","198":"almDbmsProtectMode","199":"almCommunFail","200":"almSecuAlm","201":"almDownE1Ais","214":"almOCD","215":"almNeSfLost","216":"almLCD","218":"almUHCS","219":"almCHCS","226":"almVpAis","227":"almVpRdi","228":"almVcAis","229":"almVcRdi","235":"almEthLos","236":"almHardBad","240":"almLoopAlm","261":"almLinkErr","262":"almWOffline","265":"almVoltLos","266":"almE1Loc","268":"almNoLsrParaFile","296":"almALMALS","333":"almClkNoTraceMode","336":"almApsManualStop","351":"almBdVerNmat","364":"almLaserClosed","377":"almBusErr","383":"almPowerAlm","393":"almLaserModErr","412":"almPowerAbnormal","423":"almSlaveBad","432":"almModComFail","449":"almBiosStatus","571":"almNeSoftMM","573":"almSwdlActivatedTimeOut","574":"almSwdlNePkgCheck","575":"almSwdlChgmngNoMatch","584":"almBootRomBad","589":"almLicenceErr","591":"almSyncFail","597":"almChipAbn","607":"almV5Vcais","619":"almLpsUniBiM","620":"almPatchfileNotexist","621":"almPatchErr","622":"almPatchNotConfirm","624":"almRtcFail","625":"almBdNotInstalled","626":"almMwLim","631":"almMwLof","635":"almRadioTslLow","636":"almRadioTslHigh","637":"almRadioRslHigh","638":"almRadioRslLow","639":"almRadioMute","640":"almConfigNoSupport","2569":"almSwdlPkgNoBdSoft","2570":"almSwdlRollbackFail","2571":"almSwdlCommitFail","2572":"almSwdlInProcess","2573":"almSwdlPkgVerMM","2574":"almSwdlAutoMatchInh","12288":"almLagPortectFail","12291":"almEthOamRmtLoop","12292":"almEthOamRmtSd","12293":"almEthOamRmtCritFault","12294":"almEthOamDiscoverFail","12295":"almDownT1AIS","12298":"almExEthOamCCLos","12299":"almExEthOamMpidCnflct","12300":"almLptRfi","12301":"almFlowOver","12305":"almRelayAlarmCritical","12306":"almRelayAlarmMajor","12307":"almRelayAlarmMinor","12308":"almRelayAlarmIgnore","12544":"almRemoteFault","12545":"almLocalFault","12580":"almHardErr","12581":"almNoElabel","12582":"almLptActive","12586":"almSysLogCommFail","12587":"almMwRdi","12588":"almMwFecUncor","12589":"almIfInPwrAbn","12593":"almWrgDevType","12598":"almCFCardOffLine","12599":"almCFCardFailed","12600":"almCFCardWRDisabled","12767":"almEthOamSelfLoop","12768":"almEthOamVcgSelfLoop","12769":"almLagPortFail","12770":"almLagVcPortFail","12774":"almTfCheckFail","12775":"almPatchDeactTimeout","12776":"almPatchActTimeout","12777":"almCFCardFull","12786":"almEthNoFlow","12787":"almVctrunkNoFlow","12788":"almPortModeMismatch","12790":"almPatchPkgErr","12792":"almSyncDisable","12793":"almEthLinkDown","12794":"almMacFcsExc","12795":"almMacFcsSd","12796":"almCesLospktExc","12797":"almCesMisorderpktExc","12798":"almCesStraypktExc","12799":"almCesMalpktExc","12800":"almCesJtrudrExc","12801":"almCesJtrovrExc","12802":"almCesRdi","12803":"almMpDown","12804":"almMpDelay","12805":"almPppLcpFail","12806":"almPppNcpFail","12807":"almFdbSizeAlmElan","12808":"almVpLoc","12809":"almVcLoc","12814":"almMplsTunnelLocv","12815":"almMplsTunnelExcess","12816":"almMplsTunnelMismatch","12817":"almMplsTunnelMismerge","12818":"almMplsTunnelUnknown","12819":"almMplsTunnelBdi","12820":"almMplsTunnelFdi","12821":"almMplsTunnelSD","12822":"almMplsTunnelSF","12823":"almEthCfmMisMerge","12824":"almEthCfmUnexPeri","12825":"almEthCfmLoc","12826":"almEthCfmRdi","12827":"almEthEfmDf","12828":"almEthEfmRemfault","12829":"almEthEfmEvent","12830":"almEthEfmLoopBack","12831":"almEthApsTypeMismatch","12832":"almEthApsPathMismatch","12833":"almEthApsSwitchFail","12834":"almEthApsLost","12836":"almLagMemberDown","12837":"almLagDown","12838":"almImaGroupLeDown","12839":"almImaGroupReDown","12852":"almPwDown","12853":"almPwDroppktExc","12854":"almPwExcTraffic","12860":"almLcsLimited","12861":"almLicenseLost","12862":"almXPICLos","12863":"almIfCableOpen","12864":"almIfModeUnSupported","12865":"almNp1SWIndi","12866":"almNp1SWFail","12867":"almNp1ManualStop","12868":"almModTypeMismatch","12869":"almRpsIndi","12870":"almMwBerEXC","12871":"almMwBerSD","12872":"almPatchChgsccNotmatch","12884":"almStormCurQuenumOver","12910":"almAcrLockFail","12918":"almElpsCfgMismatch","12923":"almEthPwrSupplyFail","12925":"almImaE1Delay","12926":"almLanLoc","12928":"almEthAutoLinkDown","12963":"almTimeNoTraceMode","12964":"almTimeLos","12972":"almExtTimeLoc","12989":"almRadioFadingMarginInsuff","12994":"almGspTnnlDown","12996":"almGspIsisNbAuthErr","12997":"almGspRsvpNbDown","12998":"almGspRsvpNbAuthErr","13008":"almArpMacMismatch","13047":"almPassWordNeedChange","13048":"almErpsInProtection","13049":"almComExtEccFull","13050":"almAMDownShift","13064":"almMultiRplOwner","13069":"almRadioRslBeyondTh","13075":"almAtmpwLospktExc","13076":"almAtmpwMisorderpktExc","13077":"almAtmpwUnknowncellExc","13078":"almCesPwRemoteLosPkt","13080":"almCespwOppositeRai","13081":"almCespwOppositeAcfault","13087":"almMplsTunnelOamFail","13090":"almCpuBusy","13091":"almMplsPwLocv","13092":"almMplsPwExcess","13093":"almMplsPwMismatch","13094":"almMplsPwMismerge","13095":"almMplsPwUnknown","13096":"almMplsPwBdi","13097":"almMplsPwSD","13098":"almMplsPwSF","13099":"almPwapsTypeMismatch","13100":"almPwapsPathMismatch","13101":"almPwapsSwitchFail","13102":"almPwapsLost","13103":"almMcapsApsidMismatch","13104":"almMcapsDnipwMismatch","13105":"almImaTxclkMismatch","13106":"almMcLmsCfgMisMatch","13107":"almPwNoTraffic","13108":"almLagBwMM","13110":"almDcnSizeOver","13111":"almDcnLinkOver","13112":"almMemOver","13113":"almMcspPathLocv","13114":"almMclagCfgMismatch","13115":"almLptCfgCloseport","13122":"almLcsMisMatch","13123":"almFanAging","13124":"almCesCeBoundPktlos","13125":"almNtpSyncFail","13135":"almMplsPwOamfail","13144":"almLcsFileNotExist","13145":"almLcsExpired","13146":"almLcsDaysOfGrace","13147":"almCesK1K2M","13148":"almCesK2M","13149":"almCesApsIndi","13150":"almCesApsFail","13152":"almCesLpsUniBiM","13154":"almOdcDoorOpen","13155":"almOdcSurgeProtectionFail","13156":"almOdcSmokeOver","13157":"almOdcWaterAlm","13158":"almOdcLoadPwrdown","13159":"almOdcBatteryPwrDown","13160":"almOdcBatteryCurrentAbn","13161":"almOdcFanFailed","13162":"almOdcTecAlm","13163":"almOdcPowerFail","13164":"almOdcHumiAbn","13165":"almOdcMdlAbn","13166":"almOdcTempAbn","13169":"almSecRadiusFail","13173":"almCesApsManualStop","13174":"almIsisLspOver","13176":"almDslTrunkLinkDown","13182":"almMplsPwFdi","13183":"almMwCfgMisMatch","13187":"almLicenseDiff","13188":"almPtpTimeStampAbn","13194":"almPtpSourceSwitch","13195":"almClkLockFail","13196":"almTimeLockFail","13277":"almCesAcrLockAbn","13281":"almEthCfmFail","13282":"almBgpPeerDown","13283":"almLdpPeerDown","13284":"almBdtempSensorFail","13285":"almEnvtempSensorFail","13286":"almOut1tempSensorFail","13287":"almIntempSensorFail","13288":"almOut2tempSensorFail","13289":"almBat1tempSensorFail","13290":"almEnvhumSensorFail","13291":"almEnvtemp1SensorFail","13292":"almEnvtemp2SensorFail","13293":"almBat2tempSensorFail","13294":"almMwE1Lost","13295":"almMwContWave","13303":"almIsisLspOverload","13307":"almL3vpnTunnelDown","13374":"almPortQueueDropOver","13375":"almPortcarRedpktOver","13377":"almTunnelApsDegraded","13382":"almPgPrtDegraded","13383":"almPgLinkFail","13384":"almMwAmTest","13388":"almMplsTunnelLck","13389":"almMplsPwLck","13390":"almMplsPwAis","13391":"almMplsTunnelLock","13392":"almMplsPwLock","13393":"almMplsTunnelUnexpmeg","13394":"almMplsTunnelUnexpmep","13395":"almMplsTunnelUnexpper","13396":"almMplsTunnelRdi","13397":"almMplsTunnelAis","13398":"almMplsPwUnexpmeg","13399":"almMplsPwUnexpmep","13400":"almMplsPwUnexpper","13401":"almMPlsPwRdi","13402":"almMplsPwCsf","13403":"almMplsSectLocv","13404":"almMplsSectOamFail","13405":"almMplsSectUnexpmeg","13406":"almMplsSectUnexpmep","13407":"almMplsSectUnexpper","13408":"almMplsSectRdi","13409":"almMplsSectSd","13410":"almMplsSectSf","13411":"almMplsSectLock","13416":"almSrvShutDownLd","13417":"almPortExcTraffic","13418":"almDropratioOver","13422":"almPlaCfgMismatch","13433":"almDot1xRsNoresponse","13440":"almDot1xUsernumOver","13550":"almDot1xPrNoresponse","13551":"almDot1xPrUserOver","13444":"almMacExtExc","13445":"almMringOamLocvW","13451":"almMringOamSdW","13452":"almMringOamSfW","13453":"almMringOamUnexpmegW","13454":"almMringOamUnexpmepW","13455":"almMringOamUnexpperW","13456":"almMringOamRdiW","13457":"almMringApsLostW","13458":"almMringApsMismatchW","13460":"almMringFarSwFailW","13461":"almMringOamLocvE","13467":"almMringOamSdE","13468":"almMringOamSfE","13469":"almMringOamUnexpmegE","13470":"almMringOamUnexpmepE","13471":"almMringOamUnexpperE","13472":"almMringOamRdiE","13473":"almMringApsLostE","13474":"almMringApsMismatchE","13476":"almMringFarSwFailE","13478":"almEthCfmAis","13484":"almUsbProcessFail","13485":"almNbUnReachable","13479":"almUniptpSrcNegoFail","13480":"almUniptpSrcLoss","13481":"almUniptpSrcSwitch","13486":"almBwutilizationOver","13502":"almDbmsDelete","13506":"almLaserCheckErr","13507":"almTunnelApsOutage","13508":"almPwApsDegraded","13509":"almPwApsOutage","13513":"almNeIPConfusion","13514":"almSslCertNoEnc","13533":"almNbCfgMismatch","13538":"almPlaMemberDown","13539":"almPlaDown","13545":"almSubnetRtConflict","13552":"almElanSmacFlapping","13557":"almPatchBdExclude","13558":"almPatchBdMatchFail","13560":"almISISADJACENCYCHANGE","13561":"almBGPBACKTRANSITION","13562":"almL3vTrapThreExceed","13563":"almL3vTrapVrfDown","13564":"almVersionNotsupport","13619":"almRtTblLack","13645":"almIpfpmLossRatioExce","13646":"almIpfpmOneDelayExce","13647":"almIpfpmTwoDelayExce","13655":"almEthTrunkMemberDown","13656":"almEthTrunkDown","13663":"almOspfNbrStateChange","13668":"almIpfpmInstTlpErr","13669":"almPlaMemberDownExt","13673":"almSwdlBdMatchFail","13689":"almArpFail","13692":"almRfusdDelayUnequal","13700":"almMplsLdpSessionDown","13701":"almMplsLspTblLack","13704":"almQueueResLack","13705":"almCompressMismatch","13719":"almLcsTrialPeriod","13734":"almAesMacErr","13736":"almReflectorIpCnflct","13744":"almPwdEncryptRisk","13745":"almUsbFileUnsec","13746":"almProPktFlooding","13759":"almSslCertDamaged","13762":"almArpSpoof","13774":"almProStatAbn","13775":"almIgspEntriesExc","13779":"almSslCertToExpire","13810":"almPortBerSd","13891":"almServOverFwdCapa","13895":"almNvVportDown","13907":"almFlowExcLcs","13916":"almMwFecExc","13930":"almPlaPktErr","13933":"almBrdcastRatioOver","13937":"almMimoLos","13938":"almMimoLineMismatch","13948":"almSoftwareUncommit","13960":"almKmcKeySyncFail","63509":"almLaserShut","63537":"almHardNonSupport","63538":"almVCATLOA","63554":"almLFA","63555":"almDdnLfa","63558":"almLMFA","63563":"almRMFA","63575":"almFcsErr","63577":"almB3ExcVc3","63579":"almB3SdVc3","63584":"almVcatlomVc12","63585":"almVcatLomVc3","63587":"almVCATSQMVC12","63588":"almVcatSqmVc3","63590":"almLpRdiVc12","63591":"almLpRdiVc3","63592":"almLpReiVc12","63593":"almLpReiVc3","63594":"almLpSlmVc12","63595":"almLpSlmVc3","63596":"almLpTimVc12","63597":"almLpTimVc3","63598":"almLpUneqVc12","63599":"almLpUneqVc3","63600":"almTuAisVc12","63601":"almTuAisVc3","63602":"almTuLopVc12","63603":"almTuLopVc3","63614":"almAlmImaLif","63615":"almAlmImaLods","63616":"almAlmImaRfi","63617":"almAlmImaReTxUnusable","63618":"almAlmImaReRxUnusable","63622":"almAlmE1Rai","63629":"almPortModuleOffline","63635":"almThunderAlm","63638":"almALMGFPdLFD","63639":"almALMGFPdCSF","63644":"almLaserModErrEx","63646":"almLcasFop","63647":"almLcasPlct","63648":"almLcasTlct","63649":"almLcasPlcr","63650":"almLcasTlcr","63651":"almLcasFopt","63652":"almLcasFopr","65528":"almNeDCNMode","63656":"almLptIneffect","120":"almPs","147":"almCfgVerify","194":"almFpgaAbn","63578":"almB3ExcVc4","63580":"almB3SdVc4","63586":"almVcatLomVc4","63589":"almVcatSqmVc4","63640":"almAlmGfpdssf","260":"almAuCmm","335":"almBeffecExc","366":"almC2Vcais","368":"almC2Pdi","374":"almTestStatus","390":"almSyncLockoff","606":"almLaserModuleMismatch","644":"almWsLos","12590":"almXcpIndi","12643":"almPrbsLss","12974":"almProtConnErr","13006":"almE1Ais","13007":"almE1Lof","13419":"almBdLedtest","13949":"almFldCfgCloseport","13951":"almLaserTypeMismatch","13985":"almStorageFail","14002":"almIsisLspSeqExceed","14003":"almIsisSeqReachMax","14007":"almDeviceAuthFail","13983":"almInsuffcntMemSpace","13984":"almInsuffcntFlshSpace","14035":"almErpsBlock","14051":"almPwrAcFail","14052":"almPwrAcAlarm","14053":"almPwrDcAlarm","14054":"almPwrSurgeAlarm","14055":"almPwrSolarProt","14056":"almPwrSloarFault","14066":"almPwrTmpovrProt","14067":"almPwrAcModProt","14068":"almPwrCommFail","14057":"almPwrUpgradeFalled","14058":"almPwrOutputProt","14072":"almPwrLlvdAlarm","14069":"almPwrHardFault","14059":"almBatHardFault","14060":"almBatProtAlarm","14070":"almBatAddrConflict","14061":"almBatOverdischarge","14062":"almBatOvercharge","14063":"almBatTempAlarm","14064":"almBatMissing","14065":"almBatSohLow","14071":"almBatSohWarning","14075":"almDevDoorOpen","14041":"almPatchOpTimeout","14042":"almPatchInitFail","14077":"almGpsmodLockFail","14078":"almGpsmodInvalid","14084":"almSepPortFault","14085":"almErpsCfmFail","14088":"almPatchMatchNoStart","14102":"almDcnChannelBiterror","14147":"almDcncfgNotCommit","14141":"almLptAuthFail","14150":"almPingLos","14151":"almPingArpMismatch","14164":"almErpsNotComplete","14149":"almSrvLoopLd","14172":"almDhcpFreeIpUseUp","14174":"almApsStatusIndi","14262":"almAccessCtrlDisabled","14284":"almPtpTimeAdjustOff","14285":"almGpsLos","14255":"almDbUnsave","14319":"almEnergyCfgMismach","14369":"almEnergyInprocess","14382":"almCaCfgMismatch","14407":"almBdFileUnsecured","14408":"almComboPortCfgMismatch","14459":"almEthCfgMismatch","14400":"almErpsHeartDetectFail","14581":"almIpv4PrefixExceed"};
+                  
+                  var out = [], seen = {};
+                  rows(value).forEach(function (r) {
+                      var eid = String(r['{#ALM.EID}']);
+                      var name = NAMES[eid] ? NAMES[eid].replace(/^alm/, '') : 'Alarm ' + eid;
+                      // curAlmPara: "<location>;<detail>;" e.g. "board=7,subcard=255,port=1;0x1;"
+                      var parts = String(r['{#ALM.PARA}'] || '').split(';');
+                      var loc = parts[0] || 'NE', detail = (parts[1] || '').trim();
+                      var key = eid + '|' + loc;
+                      seen[key] = (seen[key] || 0) + 1;
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#ALM.EID}': eid, '{#ALM.SEV}': String(r['{#ALM.SEV}']),
+                                '{#ALM.NAME}': name, '{#ALM.LOCATION}': loc, _key: key, _detail: detail});
+                  });
+                  // the same alarm can be raised more than once on one location (e.g. per PoE channel):
+                  // add the alarm detail to the location so every problem name is distinct
+                  out.forEach(function (o) {
+                      if (seen[o._key] > 1) o['{#ALM.LOCATION}'] += ' ' + (o._detail || '#' + o['{#SNMPINDEX}']);
+                      delete o._key;
+                      delete o._detail;
+                  });
+                  return JSON.stringify(out);
+        - uuid: f2e3360f12294a128ffef683a8f34765
+          name: 'Board discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#BOARD.TYPE},1.3.6.1.4.1.2011.2.25.4.30.14.1.1.1.2,{#BOARD.STATE},1.3.6.1.4.1.2011.2.25.4.30.14.1.2.1.3]'
+          key: rtn.board.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Boards in the subrack (optixLogBoardTable).'
+          item_prototypes:
+            - uuid: 8b7223a4cbc84637bd37d4918c72f8e6
+              name: '{#BOARD.NAME}: State'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.30.14.1.2.1.3.{#SNMPINDEX}'
+              key: 'rtn.board.state[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.STATUS}'
+              description: 'Board working status (optixPhyBoardState).'
+              valuemap:
+                name: 'Huawei RTN board state'
+              tags:
+                - tag: board
+                  value: '{#BOARD.NAME}'
+                - tag: component
+                  value: board
+              trigger_prototypes:
+                - uuid: 51c0311778af4281b64b7b850b84d727
+                  expression: 'last(/Huawei OptiX RTN by SNMP/rtn.board.state[{#SNMPINDEX}])=0'
+                  name: '{#BOARD.NAME}: Board is not working'
+                  priority: HIGH
+                  description: 'optixPhyBoardState reports notWork(0).'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var out = [];
+                  rows(value).forEach(function (r) {
+                      // configured but physically absent boards (BdStatus alarm) have no physical state row
+                      if (r['{#BOARD.STATE}'] === undefined || r['{#BOARD.STATE}'] === '') return;
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#BOARD.SLOT}': r['{#SNMPINDEX}'],
+                                '{#BOARD.TYPE}': String(r['{#BOARD.TYPE}']).toUpperCase(),
+                                '{#BOARD.NAME}': 'Slot ' + r['{#SNMPINDEX}'] + ' (' + String(r['{#BOARD.TYPE}']).toUpperCase() + ')'});
+                  });
+                  return JSON.stringify(out);
+        - uuid: d5b99d8adacd4013ba7a0541e45b5c1c
+          name: 'Board temperature discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#BOARD.TYPE},1.3.6.1.4.1.2011.2.25.4.30.14.1.1.1.2,{#BOARD.TEMP},1.3.6.1.4.1.2011.2.25.4.30.14.1.1.1.5]'
+          key: rtn.board.temp.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Boards that report a temperature.'
+          item_prototypes:
+            - uuid: e788f45123d346f195be5502f734f427
+              name: '{#BOARD.NAME}: Temperature high threshold'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.30.14.1.1.1.3.{#SNMPINDEX}'
+              key: 'rtn.board.temp.high[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              value_type: FLOAT
+              units: °C
+              description: 'Upper temperature threshold set on the board (optixLogBoardTempHighTh).'
+              tags:
+                - tag: board
+                  value: '{#BOARD.NAME}'
+                - tag: component
+                  value: environment
+            - uuid: 17ede3039c374ed1949912c433b6ce79
+              name: '{#BOARD.NAME}: Temperature'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.30.14.1.1.1.5.{#SNMPINDEX}'
+              key: 'rtn.board.temp[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.STATUS}'
+              value_type: FLOAT
+              units: °C
+              description: 'Board temperature (optixLogBoardCurTemp).'
+              tags:
+                - tag: board
+                  value: '{#BOARD.NAME}'
+                - tag: component
+                  value: environment
+          trigger_prototypes:
+            - uuid: 5035ab7bd6b44f88b1f4765758dda8ef
+              expression: 'min(/Huawei OptiX RTN by SNMP/rtn.board.temp[{#SNMPINDEX}],5m)>=last(/Huawei OptiX RTN by SNMP/rtn.board.temp.high[{#SNMPINDEX}])'
+              name: '{#BOARD.NAME}: Temperature is above the board''s high threshold'
+              priority: HIGH
+              description: 'The board''s own high-temperature threshold (optixLogBoardTempHighTh) has been reached.'
+            - uuid: 6e4adb6ecd354751942e88517c8f7014
+              expression: 'min(/Huawei OptiX RTN by SNMP/rtn.board.temp[{#SNMPINDEX}],5m)>=last(/Huawei OptiX RTN by SNMP/rtn.board.temp.high[{#SNMPINDEX}])-{$RTN.TEMP.MARGIN}'
+              name: '{#BOARD.NAME}: Temperature is near the board''s high threshold'
+              priority: WARNING
+              description: 'Within {$RTN.TEMP.MARGIN} °C of the board''s high threshold.'
+              dependencies:
+                - name: '{#BOARD.NAME}: Temperature is above the board''s high threshold'
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.board.temp[{#SNMPINDEX}],5m)>=last(/Huawei OptiX RTN by SNMP/rtn.board.temp.high[{#SNMPINDEX}])'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var out = [];
+                  rows(value).forEach(function (r) {
+                      if (r['{#BOARD.TEMP}'] === undefined || isNaN(parseFloat(r['{#BOARD.TEMP}']))) return;
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'],
+                                '{#BOARD.NAME}': 'Slot ' + r['{#SNMPINDEX}'] + ' (' + String(r['{#BOARD.TYPE}']).toUpperCase() + ')'});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 23f19eee25a444a985ca27819446a320
+          name: 'Ethernet port discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PORT.TXOCT},1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.199,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.eth.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Ethernet and radio ports with performance monitoring (ethPortPmCurTable).'
+          item_prototypes:
+            - uuid: a9f551c69d774884bc6efa2ffe86b325
+              name: '{#PORT.NAME}: RX rate (instant)'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.679.{#SNMPINDEX}'
+              key: 'rtn.eth.in.rate[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: bps
+              description: 'Instant receive rate reported by the NE (pmRXBPS).'
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+            - uuid: 32bb1158489840feb2ac583dccfbb203
+              name: '{#PORT.NAME}: Bits received'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.200.{#SNMPINDEX}'
+              key: 'rtn.eth.in[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: bps
+              description: 'Received bits per second, from the cumulative RX octet counter (pmRXOCTETS).'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+            - uuid: 11322a7864ff4c45b275dde88c0c3ee2
+              name: '{#PORT.NAME}: TX rate (instant)'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.680.{#SNMPINDEX}'
+              key: 'rtn.eth.out.rate[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: bps
+              description: 'Instant transmit rate reported by the NE (pmTXBPS).'
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+            - uuid: 69723df02e8f40a5a21b4a95f336bf39
+              name: '{#PORT.NAME}: Bits sent'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.199.{#SNMPINDEX}'
+              key: 'rtn.eth.out[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: bps
+              description: 'Sent bits per second, from the cumulative TX octet counter (pmTXOCTETS).'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+          graph_prototypes:
+            - uuid: 20010f05da5345cc910d5278a91d0c7c
+              name: '{#PORT.NAME}: Traffic'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.eth.in[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.eth.out[{#SNMPINDEX}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#PORT.TXOCT}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#PORT.SP}': loc.board + '/' + loc.port, '{#PORT.ID}': 'Port ' + loc.board + '/' + loc.port, '{#PORT.NAME}': withName('Port ' + loc.board + '/' + loc.port, lab(loc.board, loc.port))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: dfad356adfe343e0bc468407af9ca116
+          name: 'Ethernet port RX drop discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PORT.EV},1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.869,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.eth.drop.in.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Ports that report received packet drops.'
+          item_prototypes:
+            - uuid: 418291eedf5c442e99013ca19474b579
+              name: '{#PORT.NAME}: RX dropped packets'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.869.{#SNMPINDEX}'
+              key: 'rtn.eth.drop.in[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: pps
+              description: 'Received packets dropped (pmRXDROPPKTS).'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#PORT.EV}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#PORT.SP}': loc.board + '/' + loc.port, '{#PORT.ID}': 'Port ' + loc.board + '/' + loc.port, '{#PORT.NAME}': withName('Port ' + loc.board + '/' + loc.port, lab(loc.board, loc.port))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 3e45c46e5fd34fecab473a506d034212
+          name: 'Ethernet port TX drop discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PORT.EV},1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.868,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.eth.drop.out.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Ports that report transmitted packet drops.'
+          item_prototypes:
+            - uuid: 5a85de0126254961815d67c1542866bf
+              name: '{#PORT.NAME}: TX dropped packets'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.868.{#SNMPINDEX}'
+              key: 'rtn.eth.drop.out[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: pps
+              description: 'Transmit packets dropped (pmTXDROPPKTS).'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#PORT.EV}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#PORT.SP}': loc.board + '/' + loc.port, '{#PORT.ID}': 'Port ' + loc.board + '/' + loc.port, '{#PORT.NAME}': withName('Port ' + loc.board + '/' + loc.port, lab(loc.board, loc.port))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: ac037f2c26ea4480812919aec568ee48
+          name: 'Ethernet port FCS discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PORT.EV},1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.132,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.eth.fcs.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Ports that report FCS errors.'
+          item_prototypes:
+            - uuid: 8cb95eefb0fe4b15bda3ec56ef380b8b
+              name: '{#PORT.NAME}: FCS errors'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.132.{#SNMPINDEX}'
+              key: 'rtn.eth.fcs[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              description: 'Frames with FCS errors per second (pmETHFCS).'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+              trigger_prototypes:
+                - uuid: 2a5fd011fa8f4750bfdd0e0f67b23a65
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.fcs[{#SNMPINDEX}],5m)>0'
+                  name: '{#PORT.NAME}: FCS errors'
+                  priority: WARNING
+                  description: 'Frames with CRC errors are arriving on this port (cabling, SFP or duplex problem).'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#PORT.EV}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#PORT.SP}': loc.board + '/' + loc.port, '{#PORT.ID}': 'Port ' + loc.board + '/' + loc.port, '{#PORT.NAME}': withName('Port ' + loc.board + '/' + loc.port, lab(loc.board, loc.port))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: b61f6c537c6c48ca83b283704b7a20a2
+          name: 'Ethernet port utilization discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PORT.EV},1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.567,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.eth.util.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Ports that report bandwidth utilization.'
+          item_prototypes:
+            - uuid: 510dd1c52eb34d4db1e49c8513bafc08
+              name: '{#PORT.NAME}: RX utilization'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.567.{#SNMPINDEX}'
+              key: 'rtn.eth.util.rx[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: '%'
+              description: 'Receive bandwidth utilization (pmPORTRXBWUTILIZATION, 0.01 %).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.01'
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+              trigger_prototypes:
+                - uuid: 630a1d33176d4e2eafccc291fc988761
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.util.rx[{#SNMPINDEX}],{$RTN.ETH.UTIL.PERIOD})>{$RTN.ETH.UTIL.HIGH:"{#PORT.SP}"}'
+                  name: '{#PORT.NAME}: RX utilization above {$RTN.ETH.UTIL.HIGH}%'
+                  priority: AVERAGE
+                  description: 'Utilization has been above {$RTN.ETH.UTIL.HIGH}% for {$RTN.ETH.UTIL.PERIOD} (the old template''s 80% traffic trigger).'
+                - uuid: 8077cb9b9d0142289fa8797374251f0f
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.util.rx[{#SNMPINDEX}],{$RTN.ETH.UTIL.PERIOD})>{$RTN.ETH.UTIL.WARN:"{#PORT.SP}"}'
+                  name: '{#PORT.NAME}: RX utilization above {$RTN.ETH.UTIL.WARN}%'
+                  priority: WARNING
+                  description: 'Utilization has been above {$RTN.ETH.UTIL.WARN}% for {$RTN.ETH.UTIL.PERIOD} (the old template''s 70% traffic trigger).'
+                  dependencies:
+                    - name: '{#PORT.NAME}: RX utilization above {$RTN.ETH.UTIL.HIGH}%'
+                      expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.util.rx[{#SNMPINDEX}],{$RTN.ETH.UTIL.PERIOD})>{$RTN.ETH.UTIL.HIGH:"{#PORT.SP}"}'
+            - uuid: e618c3a6d4ed4e119a2a5bdec8e0971f
+              name: '{#PORT.NAME}: TX utilization'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.20.102.100.1.4.568.{#SNMPINDEX}'
+              key: 'rtn.eth.util.tx[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.TRAFFIC}'
+              value_type: FLOAT
+              units: '%'
+              description: 'Transmit bandwidth utilization (pmPORTTXBWUTILIZATION, 0.01 %).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.01'
+              tags:
+                - tag: component
+                  value: network
+                - tag: port
+                  value: '{#PORT.NAME}'
+              trigger_prototypes:
+                - uuid: 0ce982ebe8ff4d3eaf4392f8cb8a9a45
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.util.tx[{#SNMPINDEX}],{$RTN.ETH.UTIL.PERIOD})>{$RTN.ETH.UTIL.HIGH:"{#PORT.SP}"}'
+                  name: '{#PORT.NAME}: TX utilization above {$RTN.ETH.UTIL.HIGH}%'
+                  priority: AVERAGE
+                  description: 'Utilization has been above {$RTN.ETH.UTIL.HIGH}% for {$RTN.ETH.UTIL.PERIOD} (the old template''s 80% traffic trigger).'
+                - uuid: 0f319a0d30e44129b1a810ac4272be98
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.util.tx[{#SNMPINDEX}],{$RTN.ETH.UTIL.PERIOD})>{$RTN.ETH.UTIL.WARN:"{#PORT.SP}"}'
+                  name: '{#PORT.NAME}: TX utilization above {$RTN.ETH.UTIL.WARN}%'
+                  priority: WARNING
+                  description: 'Utilization has been above {$RTN.ETH.UTIL.WARN}% for {$RTN.ETH.UTIL.PERIOD} (the old template''s 70% traffic trigger).'
+                  dependencies:
+                    - name: '{#PORT.NAME}: TX utilization above {$RTN.ETH.UTIL.HIGH}%'
+                      expression: 'min(/Huawei OptiX RTN by SNMP/rtn.eth.util.tx[{#SNMPINDEX}],{$RTN.ETH.UTIL.PERIOD})>{$RTN.ETH.UTIL.HIGH:"{#PORT.SP}"}'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#PORT.EV}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#PORT.SP}': loc.board + '/' + loc.port, '{#PORT.ID}': 'Port ' + loc.board + '/' + loc.port, '{#PORT.NAME}': withName('Port ' + loc.board + '/' + loc.port, lab(loc.board, loc.port))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 5e1bf948e87b4da9a7f8bbe10679c219
+          name: 'Radio IF discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#IF.RXMODE},1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.2,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.if.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Radio IF ports in use (modulation not 0).'
+          item_prototypes:
+            - uuid: 9087cece89cf4190ad5670d836066c77
+              name: '{#IF.NAME}: Guaranteed capacity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.3.{#SNMPINDEX}'
+              key: 'rtn.if.capacity.guaranteed[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              units: bps
+              description: 'Guaranteed AM service capacity (optixRtnIFPortAMGuaranteeRate, Mbit/s).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 05108124675d4b3fb157c49bdde00426
+              name: '{#IF.NAME}: Full capacity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.4.{#SNMPINDEX}'
+              key: 'rtn.if.capacity.peak[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              units: bps
+              description: 'Full AM service capacity (optixRtnIFPortAMPeakRate, Mbit/s).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 3fde294efb144ae7bf7fdbada3e44d56
+              name: '{#IF.NAME}: RX capacity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.6.{#SNMPINDEX}'
+              key: 'rtn.if.rx.capacity[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              units: bps
+              description: 'Current receive service capacity with adaptive modulation (optixRtnIFPortAMCurrRxRate, Mbit/s).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 30317ad6f6304c5da659bf210649f530
+              name: '{#IF.NAME}: RX modulation'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.2.{#SNMPINDEX}'
+              key: 'rtn.if.rx.mode[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              description: 'Current receive modulation (optixRtnIFPortCurrRxMode).'
+              valuemap:
+                name: 'Huawei RTN modulation'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+              trigger_prototypes:
+                - uuid: 6b44102532764b5e80e2efdfabc1d55e
+                  expression: 'last(/Huawei OptiX RTN by SNMP/rtn.if.rx.mode[{#SNMPINDEX}])=0'
+                  name: '{#IF.NAME}: Radio link down (no modulation)'
+                  priority: HIGH
+                  description: 'The IF port reports no receive modulation.'
+                - uuid: dd6f4a37b4b949c596a2c62eb9a69e74
+                  expression: 'change(/Huawei OptiX RTN by SNMP/rtn.if.rx.mode[{#SNMPINDEX}])<>0'
+                  name: '{#IF.NAME}: RX modulation changed'
+                  status: DISABLED
+                  priority: INFO
+                  description: 'Adaptive modulation changed the receive mode.'
+                  manual_close: 'YES'
+            - uuid: 9b4dc9c5348742078a9ba5475541f8ad
+              name: '{#IF.NAME}: TX capacity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.5.{#SNMPINDEX}'
+              key: 'rtn.if.tx.capacity[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              units: bps
+              description: 'Current transmit service capacity (optixRtnIFPortAMCurrSendRate, Mbit/s).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 7af860b4f2084d87a31f17fb4fa0133c
+              name: '{#IF.NAME}: TX modulation'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.50.1.1.{#SNMPINDEX}'
+              key: 'rtn.if.tx.mode[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              description: 'Current transmit modulation (optixRtnIFPortCurrTxMode).'
+              valuemap:
+                name: 'Huawei RTN modulation'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+          trigger_prototypes:
+            - uuid: 24d85fba9fa34ac39f0b2fc5c723d6a3
+              expression: 'max(/Huawei OptiX RTN by SNMP/rtn.if.rx.capacity[{#SNMPINDEX}],10m)<last(/Huawei OptiX RTN by SNMP/rtn.if.capacity.peak[{#SNMPINDEX}]) and last(/Huawei OptiX RTN by SNMP/rtn.if.rx.capacity[{#SNMPINDEX}])>0'
+              name: '{#IF.NAME}: Running below full capacity (modulation downshift)'
+              priority: WARNING
+              description: 'Receive capacity has been below the full AM capacity for 10 minutes (fading or interference).'
+          graph_prototypes:
+            - uuid: b0447871d7fd4683ab3c8a44833d412d
+              name: '{#IF.NAME}: Capacity'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.rx.capacity[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.tx.capacity[{#SNMPINDEX}]'
+            - uuid: ab6bb180547440efa4537b243db8c239
+              name: '{#IF.NAME}: Modulation'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.rx.mode[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.tx.mode[{#SNMPINDEX}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#IF.RXMODE}'] === undefined || String(r['{#IF.RXMODE}']) === '0') return;   // not an IF row / port not in use
+                      var p = String(r['{#SNMPINDEX}']).split('.'), id = 'IF ' + p[0] + '/' + p[p.length - 1];
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#IF.ID}': id, '{#IF.NAME}': withName(id, lab(p[0], p[p.length - 1]))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 2db7fb0005a94d4ebe57a6a8c7ec6fe1
+          name: 'Radio link neighbour discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2]'
+          key: rtn.if.nb.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Radio ports that report a far-end NE name.'
+          item_prototypes:
+            - uuid: 921c251ae5b446749119e5afa91b939a
+              name: '{#IF.NAME}: Far-end NE'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2.{#SNMPINDEX}'
+              key: 'rtn.if.farend[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.STATUS}'
+              trends: '0'
+              value_type: CHAR
+              description: 'Name of the NE at the other end of this radio link, as the radio learns it over the air (optixRtnNeighbourNeName). The port name typed on the NE is not always up to date.'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+              trigger_prototypes:
+                - uuid: 3e4add68b5304ac484fc2275c3c928b8
+                  expression: 'change(/Huawei OptiX RTN by SNMP/rtn.if.farend[{#SNMPINDEX}])=1 and length(last(/Huawei OptiX RTN by SNMP/rtn.if.farend[{#SNMPINDEX}]))>0'
+                  name: '{#IF.ID}: Far-end NE changed to {ITEM.LASTVALUE}'
+                  priority: WARNING
+                  description: 'This radio link now reaches a different NE: wrong pointing, a swapped radio or a reconfiguration.'
+                  manual_close: 'YES'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (!String(r['{#P.NB}'] || '').trim()) return;   // only ports where the radio reports a far-end NE
+                      var p = String(r['{#SNMPINDEX}']).split('.'), id = 'IF ' + p[0] + '/' + p[p.length - 1];
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#IF.ID}': id, '{#IF.NAME}': withName(id, lab(p[0], p[p.length - 1]))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 52811bff2a204b93a4547a40a9bbb7ea
+          name: 'Radio IF performance discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#IF.SNR},1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15377,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.if.pm.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Radio IF performance: SNR, MSE and BER of the current 15-minute period.'
+          item_prototypes:
+            - uuid: c9a88f7d2b394e7dbe0c44f8158a327c
+              name: '{#IF.NAME}: BER'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15479.{#SNMPINDEX}'
+              key: 'rtn.if.pm.ber[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              description: 'Bit error rate counter (pmIfBer). Current 15-minute PM period.'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: d0007f3702f84d0399878cf8a132b6a8
+              name: '{#IF.NAME}: MSE, avg'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15507.{#SNMPINDEX}'
+              key: 'rtn.if.pm.mse.avg[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dB
+              description: 'Average MSE (pmIfMseAvg, 0.1 dB). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 1946f863a31c485797f343d989bb9856
+              name: '{#IF.NAME}: MSE, worst'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15508.{#SNMPINDEX}'
+              key: 'rtn.if.pm.mse.max[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dB
+              description: 'Highest (worst) MSE (pmIfMseMax, 0.1 dB). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: e74c834f561f48a8966282f6ccea38cd
+              name: '{#IF.NAME}: MSE, best'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15509.{#SNMPINDEX}'
+              key: 'rtn.if.pm.mse.min[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dB
+              description: 'Lowest (best) MSE (pmIfMseMin, 0.1 dB). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 177b1a0d1a9344c384682ca13bb61ac8
+              name: '{#IF.NAME}: SNR, avg'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15377.{#SNMPINDEX}'
+              key: 'rtn.if.pm.snr.avg[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dB
+              description: 'Average SNR (pmIfSnrAvg, 0.1 dB). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: 8144c3f7e69f4f6e82083d37f36383bb
+              name: '{#IF.NAME}: SNR, max'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15375.{#SNMPINDEX}'
+              key: 'rtn.if.pm.snr.max[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dB
+              description: 'Maximum SNR (pmIfSnrMax, 0.1 dB). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+            - uuid: d1260e270ed941adb8d24e73986fbcfc
+              name: '{#IF.NAME}: SNR, min'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.70.60.1.2.15376.{#SNMPINDEX}'
+              key: 'rtn.if.pm.snr.min[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dB
+              description: 'Minimum SNR (pmIfSnrMin, 0.1 dB). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: if
+                  value: '{#IF.NAME}'
+          graph_prototypes:
+            - uuid: 1f4edf2806264b18bf9f83075393a579
+              name: '{#IF.NAME}: MSE'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.pm.mse.min[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.pm.mse.avg[{#SNMPINDEX}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.pm.mse.max[{#SNMPINDEX}]'
+            - uuid: c9f014a2b83b4cd9858562a6f2c80499
+              name: '{#IF.NAME}: SNR'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.pm.snr.min[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.pm.snr.avg[{#SNMPINDEX}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.if.pm.snr.max[{#SNMPINDEX}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#IF.SNR}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#IF.ID}': 'IF ' + loc.board + '/' + loc.port, '{#IF.NAME}': withName('IF ' + loc.board + '/' + loc.port, lab(loc.board, loc.port))});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 48d85cb7118541e79c7172c3523d29ea
+          name: 'ODU frequency band discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#ODU.BAND},1.3.6.1.4.1.2011.2.25.4.40.4.10.101.1.1,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.odu.band.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'ODUs that report their frequency band.'
+          item_prototypes:
+            - uuid: be7ba968ac6749b898dc0fdb6cec0c2e
+              name: '{#ODU.NAME}: Frequency band'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.101.1.1.{#SNMPINDEX}'
+              key: 'rtn.odu.band[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              units: GHz
+              description: 'ODU frequency band (optixRtnOduFreqBand).'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#ODU.BAND}'] === undefined) return;
+                      var slot = parseInt(String(r['{#SNMPINDEX}']).split('.')[0], 10);
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#ODU.SLOT}': slot, '{#ODU.ID}': oduName(slot), '{#ODU.NAME}': oduLabel(slot, lab)});
+                  });
+                  return JSON.stringify(out);
+        - uuid: 2e9c23db557a41ab954e9f9a7b2f8bf1
+          name: 'ODU discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#ODU.RX},1.3.6.1.4.1.2011.2.25.4.40.4.10.30.1.9,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.odu.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'Outdoor units (optixRtnOduPowerTable, deprecated MIB module that all firmware supports).'
+          item_prototypes:
+            - uuid: 6dd065e6fceb4041aee7e37f7d1cdb2a
+              name: '{#ODU.NAME}: Calloff deviation'
+              type: CALCULATED
+              key: 'rtn.odu.calloff.diff[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              value_type: FLOAT
+              units: dB
+              params: '((last(//rtn.odu.tx.power[{#SNMPINDEX}])-last(//rtn.odu.tx.power.cfg[{#SNMPINDEX}]))-(last(//rtn.odu.rx.power[{#SNMPINDEX}])-{$CALLOFF.RX:"{#ODU.SLOT}"}))*({$CALLOFF.RX:"{#ODU.SLOT}"}<>0)'
+              description: 'How much this link has degraded since commissioning, in dB (the old template''s rx_tx_diff): (TX actual - TX configured) - (RX actual - calloff RX). With TX at its configured power this is how many dB the received level has dropped since commissioning. The calloff RX is a host macro per ODU: CALLOFF.RX with the ODU number as context, e.g. for ODU 27: CALLOFF.RX:27. Without it the item stays 0.'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+              trigger_prototypes:
+                - uuid: 05e7cd96d0854e9796c14224109afd9a
+                  expression: 'min(/Huawei OptiX RTN by SNMP/rtn.odu.calloff.diff[{#SNMPINDEX}],{$RTN.CALLOFF.PERIOD})>{$RTN.CALLOFF.MAX}'
+                  name: '{#ODU.NAME}: Calloff deviation above {$RTN.CALLOFF.MAX} dB for {$RTN.CALLOFF.PERIOD}'
+                  priority: HIGH
+                  description: 'The link has been more than {$RTN.CALLOFF.MAX} dB worse than at commissioning for {$RTN.CALLOFF.PERIOD} (the old ''Calloff above 7dbm'' check): misalignment, a degraded ODU or an obstruction.'
+                  dependencies:
+                    - name: '{#ODU.NAME}: No received signal'
+                      expression: 'max(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],3m)<{$RTN.ODU.RX.NOSIGNAL}'
+            - uuid: c770bf3bab494bd68d8efa210c1887d2
+              name: '{#ODU.NAME}: RX frequency'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.20.1.4.{#SNMPINDEX}'
+              key: 'rtn.odu.rx.freq[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              units: Hz
+              description: 'Actual receive frequency (optixRtnOduActualRxFreq, kHz).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000'
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: 2fe1577ccd5f4ce2a594abeceb7752b1
+              name: '{#ODU.NAME}: RX power'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.30.1.9.{#SNMPINDEX}'
+              key: 'rtn.odu.rx.power[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Actual received power, RSL (optixRtnOduActualRxPower, 0.1 dBm).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+              trigger_prototypes:
+                - uuid: ddde7b356922461bbab0925162456d65
+                  expression: 'max(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],5m)<{$RTN.ODU.RX.WARN:"{#ODU.SLOT}"}'
+                  name: '{#ODU.NAME}: Low received signal level'
+                  priority: WARNING
+                  description: 'RSL below {$RTN.ODU.RX.WARN} dBm for 5 minutes. Set the macro per link with context, with the ODU number, e.g. {$RTN.ODU.RX.WARN:27}.'
+                  dependencies:
+                    - name: '{#ODU.NAME}: No received signal'
+                      expression: 'max(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],3m)<{$RTN.ODU.RX.NOSIGNAL}'
+                - uuid: 3606b3f9496e481b8bd637ec96d3e386
+                  expression: 'max(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],3m)<{$RTN.ODU.RX.NOSIGNAL}'
+                  name: '{#ODU.NAME}: No received signal'
+                  priority: HIGH
+                  description: 'Received power is below {$RTN.ODU.RX.NOSIGNAL} dBm: the link is most likely down.'
+                - uuid: 6161f70cca5d434880adbfb4f68037bc
+                  expression: 'avg(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],10m)<avg(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],1d)-{$RTN.ODU.RX.DROP}'
+                  name: '{#ODU.NAME}: RX power dropped below its daily average'
+                  priority: WARNING
+                  description: 'RSL over the last 10 minutes is {$RTN.ODU.RX.DROP} dB or more below the 1-day average (rain fade, misalignment or a fault at the far end).'
+                  dependencies:
+                    - name: '{#ODU.NAME}: No received signal'
+                      expression: 'max(/Huawei OptiX RTN by SNMP/rtn.odu.rx.power[{#SNMPINDEX}],3m)<{$RTN.ODU.RX.NOSIGNAL}'
+            - uuid: aa7fad934c8f4a2d97c00984e919540f
+              name: '{#ODU.NAME}: T/R spacing'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.20.1.2.{#SNMPINDEX}'
+              key: 'rtn.odu.trspacing[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              units: Hz
+              description: 'Configured transmit/receive spacing (optixRtnOduCfgTRSpacing, kHz).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000'
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: 06930dbada65459faf7682c7c5099bc8
+              name: '{#ODU.NAME}: TX frequency'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.20.1.3.{#SNMPINDEX}'
+              key: 'rtn.odu.tx.freq[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              units: Hz
+              description: 'Actual transmit frequency (optixRtnOduActualTxFreq, kHz).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000'
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+              trigger_prototypes:
+                - uuid: 9647898637b9419f92e2a6e38889d142
+                  expression: 'change(/Huawei OptiX RTN by SNMP/rtn.odu.tx.freq[{#SNMPINDEX}])<>0'
+                  name: '{#ODU.NAME}: TX frequency changed'
+                  priority: INFO
+                  manual_close: 'YES'
+            - uuid: 27bfd2acde2a415d966811819798b584
+              name: '{#ODU.NAME}: TX power, configured'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.30.1.1.{#SNMPINDEX}'
+              key: 'rtn.odu.tx.power.cfg[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.INVENTORY}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Configured transmit power (optixRtnOduCfgTxPower).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: 792ad6404ccc4d9b87af352ebada85cc
+              name: '{#ODU.NAME}: TX power'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.30.1.8.{#SNMPINDEX}'
+              key: 'rtn.odu.tx.power[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.RADIO}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Actual transmit power (optixRtnOduActualTxPower, 0.1 dBm).'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+          graph_prototypes:
+            - uuid: c2dacf3bde6b47e2b35052b925620f9c
+              name: '{#ODU.NAME}: Calloff deviation'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.odu.calloff.diff[{#SNMPINDEX}]'
+            - uuid: 7833c9d310ea405ca16b6518b9180b98
+              name: '{#ODU.NAME}: RX and TX power'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.odu.rx.power[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.odu.tx.power[{#SNMPINDEX}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#ODU.RX}'] === undefined) return;
+                      var slot = parseInt(String(r['{#SNMPINDEX}']).split('.')[0], 10);
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#ODU.SLOT}': slot, '{#ODU.ID}': oduName(slot), '{#ODU.NAME}': oduLabel(slot, lab)});
+                  });
+                  return JSON.stringify(out);
+        - uuid: b5713ae0b2c24c1caef4d100cb2fe46b
+          name: 'ODU performance discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#ODU.RSL},1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.8608,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.odu.pm.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'ODU performance: RSL and TSL of the current 15-minute period.'
+          item_prototypes:
+            - uuid: 2849347b734742feb4a4c4453383c64a
+              name: '{#ODU.NAME}: RSL, avg'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.15043.{#SNMPINDEX}'
+              key: 'rtn.odu.pm.rsl.avg[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Average received signal level (pmRslAvg, 0.1 dBm). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: 14b0c69a618f4fda93e1086cfd3dd60d
+              name: '{#ODU.NAME}: RSL, max'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.8606.{#SNMPINDEX}'
+              key: 'rtn.odu.pm.rsl.max[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Maximum received signal level (pmRslMax, 0.1 dBm). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: d5b1a0b7af314fed9bd376327ec94b3d
+              name: '{#ODU.NAME}: RSL, min'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.8607.{#SNMPINDEX}'
+              key: 'rtn.odu.pm.rsl.min[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Minimum received signal level (pmRslMin, 0.1 dBm). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: 80a96603e311491e9ae91fd40fbf8042
+              name: '{#ODU.NAME}: TSL, avg'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.15047.{#SNMPINDEX}'
+              key: 'rtn.odu.pm.tsl.avg[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Average transmit signal level (pmTslAvg, 0.1 dBm). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: a3aa037be41d453a9c5f9bb89c3c9a07
+              name: '{#ODU.NAME}: TSL, max'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.8609.{#SNMPINDEX}'
+              key: 'rtn.odu.pm.tsl.max[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Maximum transmit signal level (pmTslMax, 0.1 dBm). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+            - uuid: c58a1e2dc5424b958e482a938634603b
+              name: '{#ODU.NAME}: TSL, min'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.3.70.10.80.60.1.2.8610.{#SNMPINDEX}'
+              key: 'rtn.odu.pm.tsl.min[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.PM}'
+              value_type: FLOAT
+              units: dBm
+              description: 'Minimum transmit signal level (pmTslMin, 0.1 dBm). Current 15-minute PM period.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+          trigger_prototypes:
+            - uuid: 4986ffc0af5a45388b77ef55c0d4c0b2
+              expression: 'last(/Huawei OptiX RTN by SNMP/rtn.odu.pm.rsl.avg[{#SNMPINDEX}])-last(/Huawei OptiX RTN by SNMP/rtn.odu.pm.rsl.min[{#SNMPINDEX}])>{$RTN.RSL.FADE}'
+              name: '{#ODU.NAME}: Fading: RSL dipped {$RTN.RSL.FADE} dB below average in this 15-minute period'
+              priority: WARNING
+              description: 'The 15-minute minimum RSL is more than {$RTN.RSL.FADE} dB under the 15-minute average.'
+          graph_prototypes:
+            - uuid: 078f65069a704cfaba809845d1b03779
+              name: '{#ODU.NAME}: RSL (15-minute min/avg/max)'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.odu.pm.rsl.min[{#SNMPINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.odu.pm.rsl.avg[{#SNMPINDEX}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  item:
+                    host: 'Huawei OptiX RTN by SNMP'
+                    key: 'rtn.odu.pm.rsl.max[{#SNMPINDEX}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#ODU.RSL}'] === undefined) return;
+                      var idx = String(r['{#SNMPINDEX}']);
+                      var loc = location(idxString(idx));
+                      if (loc.board === undefined) return;
+                      out.push({'{#SNMPINDEX}': idx, '{#ODU.ID}': oduName(loc.board), '{#ODU.NAME}': oduLabel(loc.board, lab)});
+                  });
+                  return JSON.stringify(out);
+        - uuid: dbda01bd8df74a86ac687f2a2eedcad0
+          name: 'ODU transmitter state discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#ODU.TXSTATE},1.3.6.1.4.1.2011.2.25.4.40.4.10.40.1.2,{#P.NAME},1.3.6.1.4.1.2011.2.25.4.30.36.1.1.1.2,{#P.NB},1.3.6.1.4.1.2011.2.25.4.40.3.10.92.1.2]'
+          key: rtn.odu.state.discovery
+          delay: '{$RTN.LLD.INTERVAL}'
+          lifetime: 7d
+          description: 'ODUs that report their actual transmitter state.'
+          item_prototypes:
+            - uuid: 9f5ea20206924c36bf572506fabc6c47
+              name: '{#ODU.NAME}: Transmitter state'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.2011.2.25.4.40.4.10.40.1.2.{#SNMPINDEX}'
+              key: 'rtn.odu.tx.state[{#SNMPINDEX}]'
+              delay: '{$RTN.INTERVAL.STATUS}'
+              description: 'Actual transmitter state (optixRtnOduActualWorkState): muted or unmuted.'
+              valuemap:
+                name: 'Huawei RTN ODU transmitter'
+              tags:
+                - tag: component
+                  value: radio
+                - tag: odu
+                  value: '{#ODU.NAME}'
+              trigger_prototypes:
+                - uuid: 26ee7e879be942959862d8fd2c9a2beb
+                  expression: 'last(/Huawei OptiX RTN by SNMP/rtn.odu.tx.state[{#SNMPINDEX}])=0'
+                  name: '{#ODU.NAME}: Transmitter is muted'
+                  priority: AVERAGE
+                  description: 'The ODU transmitter is muted, so this end sends no signal.'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  function rows(value) {
+                      var d = JSON.parse(value);
+                      return Array.isArray(d) ? d : (d.data || []);
+                  }
+                  // index "26.26.98.111..." or "26.98.111..." -> the ASCII string it encodes
+                  function idxString(idx) {
+                      var p = String(idx).split('.');
+                      for (var i = 0; i < p.length; i++) {
+                          if (p.length - i - 1 === parseInt(p[i], 10)) {
+                              var s = '';
+                              for (var j = i + 1; j < p.length; j++) s += String.fromCharCode(parseInt(p[j], 10));
+                              return s;
+                          }
+                      }
+                      return String(idx);
+                  }
+                  // "board=17,subcard=255,port=5" -> {board: 17, subcard: 255, port: 5}
+                  function location(s) {
+                      var o = {};
+                      String(s).split(',').forEach(function (kv) {
+                          var a = kv.split('=');
+                          if (a.length === 2) o[a[0].trim()] = parseInt(a[1], 10);
+                      });
+                      return o;
+                  }
+                  // ODU slot -> IF slot/port: +20/+40 on RTN 905/910A/950A, +50/+70 on RTN 980, same slot on RTN 380H
+                  function oduIf(slot) {
+                      var b = [[70, 2], [50, 1], [40, 2], [20, 1]];
+                      for (var i = 0; i < b.length; i++)
+                          if (slot > b[i][0]) return [slot - b[i][0], b[i][1]];
+                      return [slot, 1];
+                  }
+                  function oduName(slot) {
+                      var p = oduIf(slot);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + ')';
+                  }
+                  // Destination of a port: the neighbour NE name the radio learns over the link ({#P.NB}),
+                  // else the port name engineers typed on the NE ({#P.NAME}). Both tables are indexed slot.255.port
+                  // and arrive as extra discovery rows next to the rule's own rows.
+                  // factory-default port labels (RTN 380H and others) name the port type, not a destination
+                  var DEFAULT_PORT_NAMES = /^(IF|P&E|COMBO(\(e\))?|\d*0?GE\d*|NMS)$/i;
+                  function labels(R) {
+                      var L = {};
+                      R.forEach(function (r) {
+                          var nb = String(r['{#P.NB}'] || '').trim(), pn = String(r['{#P.NAME}'] || '').trim();
+                          if (DEFAULT_PORT_NAMES.test(pn)) pn = '';
+                          if (nb || pn) L[String(r['{#SNMPINDEX}'])] = nb || pn;
+                      });
+                      return function (slot, port) { return L[slot + '.255.' + port] || ''; };
+                  }
+                  function withName(id, n) { return n ? id + ' (' + n + ')' : id; }
+                  function oduLabel(slot, lab) {
+                      var p = oduIf(slot), n = lab(p[0], p[1]);
+                      return 'ODU ' + slot + ' (IF ' + p[0] + '/' + p[1] + (n ? ', ' + n : '') + ')';
+                  }
+                  
+                  var R = rows(value), lab = labels(R), out = [];
+                  R.forEach(function (r) {
+                      if (r['{#ODU.TXSTATE}'] === undefined) return;
+                      var slot = parseInt(String(r['{#SNMPINDEX}']).split('.')[0], 10);
+                      out.push({'{#SNMPINDEX}': r['{#SNMPINDEX}'], '{#ODU.SLOT}': slot, '{#ODU.ID}': oduName(slot), '{#ODU.NAME}': oduLabel(slot, lab)});
+                  });
+                  return JSON.stringify(out);
+      tags:
+        - tag: class
+          value: network
+        - tag: target
+          value: huawei-rtn
+      macros:
+        - macro: '{$CALLOFF.RX}'
+          value: '0'
+          description: 'Commissioning (calloff) RX power in dBm, set per ODU on the host with the ODU number as context, e.g. {$CALLOFF.RX:27} = -38 for ODU 27. 0 = not set (no calloff check). The TX reference is the ODU''s configured TX power, so no TX calloff is needed.'
+        - macro: '{$RTN.ALARM.EID.IGNORE}'
+          value: ^(13047|412|13144|12860|333)$
+          description: 'Alarm IDs (curAlmEID) that never raise problems, as a regex. Defaults are common standing conditions: 13047 almPassWordNeedChange, 412 almPowerAbnormal (fires when a redundant power input is unused), 13144 almLcsFileNotExist and 12860 almLcsLimited (RTN 380H licensing), 333 almClkNoTraceMode (clock free-run). Remove 412 to alarm on power input loss.'
+        - macro: '{$RTN.ALARM.MIN.ACTIVE}'
+          value: 5m
+          description: 'Flap protection: window in which an alarm must be seen {$RTN.ALARM.MIN.SAMPLES} times.'
+        - macro: '{$RTN.ALARM.MIN.SAMPLES}'
+          value: '4'
+          description: 'Flap protection: polls (one per minute) an alarm must be seen in before its problem opens.'
+        - macro: '{$RTN.ALARM.NODATA}'
+          value: 5m
+          description: 'An alarm problem closes when its row has been gone from the alarm table this long.'
+        - macro: '{$RTN.CALLOFF.MAX}'
+          value: '7'
+          description: 'Calloff deviation (dB) that raises a High problem when exceeded for {$RTN.CALLOFF.PERIOD}.'
+        - macro: '{$RTN.CALLOFF.PERIOD}'
+          value: 12h
+          description: 'How long the calloff deviation must stay above {$RTN.CALLOFF.MAX}.'
+        - macro: '{$RTN.ETH.UTIL.HIGH}'
+          value: '80'
+          description: 'Port utilization (%) that raises an Average problem after {$RTN.ETH.UTIL.PERIOD}. Per port, e.g. {$RTN.ETH.UTIL.HIGH:17/5}.'
+        - macro: '{$RTN.ETH.UTIL.PERIOD}'
+          value: 5m
+          description: 'How long utilization must stay above a level before a problem opens (the old template used 30 s).'
+        - macro: '{$RTN.ETH.UTIL.WARN}'
+          value: '70'
+          description: 'Port utilization (%) that raises a Warning after {$RTN.ETH.UTIL.PERIOD}. Per port with slot/port as context, e.g. {$RTN.ETH.UTIL.WARN:17/5}.'
+        - macro: '{$RTN.ICMP.LOSS.WARN}'
+          value: '20'
+          description: 'ICMP loss (%) warning threshold.'
+        - macro: '{$RTN.ICMP.RESPONSE.WARN}'
+          value: '0.3'
+          description: 'ICMP response time (s) warning threshold.'
+        - macro: '{$RTN.INTERVAL.ALARM}'
+          value: 5m
+          description: 'How often active alarms are discovered (Zabbix 6.0 template; each run loads the server''s LLD workers).'
+        - macro: '{$RTN.INTERVAL.INVENTORY}'
+          value: 1h
+          description: 'Poll interval for configuration and inventory values.'
+        - macro: '{$RTN.INTERVAL.PM}'
+          value: 5m
+          description: 'Poll interval for 15-minute performance values (RSL/TSL, SNR, MSE).'
+        - macro: '{$RTN.INTERVAL.RADIO}'
+          value: 1m
+          description: 'Poll interval for radio values (ODU power, modulation, capacity).'
+        - macro: '{$RTN.INTERVAL.STATUS}'
+          value: 5m
+          description: 'Poll interval for boards, temperatures and status values.'
+        - macro: '{$RTN.INTERVAL.TRAFFIC}'
+          value: 1m
+          description: 'Poll interval for Ethernet/radio port traffic.'
+        - macro: '{$RTN.LLD.INTERVAL}'
+          value: 1h
+          description: 'Discovery interval (Zabbix 6.0 discovery rules).'
+        - macro: '{$RTN.ODU.RX.DROP}'
+          value: '10'
+          description: 'RSL drop (dB) below the 1-day average that raises a warning.'
+        - macro: '{$RTN.ODU.RX.NOSIGNAL}'
+          value: '-85'
+          description: 'RSL (dBm) below which the link is considered down.'
+        - macro: '{$RTN.ODU.RX.WARN}'
+          value: '-65'
+          description: 'RSL (dBm) below which a warning is raised. Per ODU with the ODU number as context, e.g. {$RTN.ODU.RX.WARN:27}.'
+        - macro: '{$RTN.RSL.FADE}'
+          value: '10'
+          description: 'Gap (dB) between 15-minute average and minimum RSL that counts as fading.'
+        - macro: '{$RTN.TEMP.MARGIN}'
+          value: '10'
+          description: 'Warn when a board is within this many °C of its own high threshold.'
+        - macro: '{$SNMP.TIMEOUT}'
+          value: 5m
+          description: 'No SNMP answer for this long raises a problem.'
+      valuemaps:
+        - uuid: ba201f48cb3f4549b0f74b2c3a309671
+          name: 'Huawei RTN alarm severity'
+          mappings:
+            - value: '1'
+              newvalue: Critical
+            - value: '2'
+              newvalue: Major
+            - value: '3'
+              newvalue: Minor
+            - value: '4'
+              newvalue: Warning
+            - value: '5'
+              newvalue: 'Not reported'
+        - uuid: 7496f5dbe49b4492b9f90dae0fcb4cb1
+          name: 'Huawei RTN board state'
+          mappings:
+            - value: '0'
+              newvalue: 'Not working'
+            - value: '1'
+              newvalue: Working
+        - uuid: 9848f3585ba84fde897dec47e8ad0de1
+          name: 'Huawei RTN device type'
+          mappings:
+            - value: '76'
+              newvalue: 'RTN 910'
+            - value: '77'
+              newvalue: 'RTN 950'
+            - value: '83'
+              newvalue: 'RTN 980'
+            - value: '92'
+              newvalue: 'RTN 310'
+            - value: '95'
+              newvalue: 'RTN 905'
+            - value: '114'
+              newvalue: 'RTN 950A'
+            - value: '115'
+              newvalue: 'RTN 380'
+            - value: '138'
+              newvalue: 'RTN 360'
+            - value: '140'
+              newvalue: 'RTN 980L'
+            - value: '151'
+              newvalue: 'RTN 320'
+            - value: '152'
+              newvalue: 'RTN 910A'
+            - value: '160'
+              newvalue: 'RTN 380H'
+            - value: '180'
+              newvalue: 'RTN 380E'
+            - value: '183'
+              newvalue: 'RTN 905E'
+            - value: '191'
+              newvalue: 'PowerCube 500'
+            - value: '203'
+              newvalue: 'RTN 380A'
+            - value: '206'
+              newvalue: 'RTN 380AX'
+        - uuid: 85103966006248ed88df0dc9ede087ca
+          name: 'Huawei RTN modulation'
+          mappings:
+            - value: '-1'
+              newvalue: 'NULL'
+            - value: '0'
+              newvalue: 'Not in use'
+            - value: '1'
+              newvalue: QPSK
+            - value: '2'
+              newvalue: 16QAM
+            - value: '3'
+              newvalue: 32QAM
+            - value: '4'
+              newvalue: 64QAM
+            - value: '5'
+              newvalue: 128QAM
+            - value: '6'
+              newvalue: 256QAM
+            - value: '7'
+              newvalue: 512QAM
+            - value: '8'
+              newvalue: 1024QAM
+            - value: '9'
+              newvalue: 'QPSK Strong'
+            - value: '10'
+              newvalue: '16QAM Strong'
+            - value: '11'
+              newvalue: '512QAM Light'
+            - value: '12'
+              newvalue: '1024QAM Light'
+            - value: '13'
+              newvalue: 2048QAM
+            - value: '14'
+              newvalue: 'QPSK Strong 250M'
+            - value: '15'
+              newvalue: 'QPSK Strong 500M'
+            - value: '16'
+              newvalue: 'QPSK Strong 750M'
+            - value: '17'
+              newvalue: 'QPSK Strong 62.5M'
+            - value: '18'
+              newvalue: 'QPSK Strong 125M'
+            - value: '20'
+              newvalue: 4096QAM
+            - value: '21'
+              newvalue: BPSK
+            - value: '22'
+              newvalue: 'BPSK 250M'
+            - value: '23'
+              newvalue: 'BPSK 500M'
+            - value: '24'
+              newvalue: 'BPSK 750M'
+            - value: '25'
+              newvalue: 'BPSK 1000M'
+            - value: '26'
+              newvalue: 'BPSK 1500M'
+            - value: '27'
+              newvalue: 'BPSK 2000M'
+            - value: '28'
+              newvalue: '2048QAM Light'
+            - value: '29'
+              newvalue: 'BPSK 62.5M'
+            - value: '30'
+              newvalue: 'BPSK 125M'
+            - value: '31'
+              newvalue: 8PSK
+            - value: '32'
+              newvalue: 8192QAM
+            - value: '33'
+              newvalue: 16384QAM
+        - uuid: 5249b3bd865d468cb86b76f049bd62fa
+          name: 'Huawei RTN NE state'
+          mappings:
+            - value: '0'
+              newvalue: Installing
+            - value: '1'
+              newvalue: Running
+        - uuid: 618c2afb17ec47538ec98ea28e1768f1
+          name: 'Huawei RTN ODU transmitter'
+          mappings:
+            - value: '0'
+              newvalue: Muted
+            - value: '1'
+              newvalue: Unmuted
